@@ -1,20 +1,28 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:tunassiakanugrah/beranda_page.dart'; // <--- Bagian ini yang disesuaikan!
+import 'package:tunassiakanugrah/auth/onboarding_page.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(AplikasiSaya());
 }
 
-class MyApp extends StatelessWidget {
+class AplikasiSaya extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Aplikasi Flutter Saya',
+      title: 'APK Tracker', // UBAH: Judul aplikasi menjadi "APK Tracker"
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: IconThemeData(color: Colors.black),
+          titleTextStyle: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
       ),
-      home: BerandaPage(), // Set BerandaPage sebagai halaman awal
+      home: OnboardingPage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
