@@ -1,17 +1,23 @@
 // lib/pemeliharaan/form_laporan.dart
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tunassiakanugrah/auth/login_page.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class FormulirLaporanHalaman extends StatefulWidget {
-  final String idAlat; // Parameter: id_barang dari ERD
-  final String tipeAlat; // Parameter: jenis_barang dari API (dari tabel barang)
-  final String lokasiAlat; // Parameter: lokasi_barang dari API (dari tabel barang)
-  final String qrCodeData; // Parameter: nomor_identifikasi dari ERD (tabel qr_code)
-  final String namaAlat; // Parameter: nama_barang dari ERD
+  final String idAlat;
+  final String tipeBarang;
+  final String lokasiAlat;
+  final String qrCodeData;
+  final String namaAlat;
 
   FormulirLaporanHalaman({
     Key? key,
     required this.idAlat,
-    required this.tipeAlat,
+    required this.tipeBarang,
     required this.lokasiAlat,
     required this.qrCodeData,
     required this.namaAlat,
@@ -22,19 +28,22 @@ class FormulirLaporanHalaman extends StatefulWidget {
 }
 
 class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman> {
+  final TextEditingController _tanggalController = TextEditingController();
+  final TextEditingController _lokasiController = TextEditingController();
+
+
   String? _kondisiFisikTerpilih;
   String? _selangTerpilih;
   String? _pressureGaugeTerpilih;
-  String? _safetySealTerpilih;
+  String? _safetyPinTerpilih;
   String? _tindakanTerpilih;
+  File? _imageFile;
 
-  final TextEditingController _tanggalController = TextEditingController();
-  final TextEditingController _lokasiController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Isi otomatis field dengan data dari QR Code/API
     _lokasiController.text = widget.lokasiAlat;
     _tanggalController.text = _formatDate(DateTime.now());
   }
@@ -47,7 +56,7 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    return '${date.year.toString()}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -62,6 +71,123 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman> {
         _tanggalController.text = _formatDate(picked);
       });
     }
+  }
+
+  // Fungsi untuk mengirim laporan ke API (ini sudah benar)
+  Future<void> _kirimLaporan() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+
+    final String tanggalInspeksi = _tanggalController.text;
+    final String lokasiAlat = _lokasiController.text;
+    final String fotoPath = _imageFile?.path ?? '';
+    final String kondisiFisik = _kondisiFisikTerpilih ?? '';
+    final String selang = _selangTerpilih ?? '';
+    final String pressureGauge = _pressureGaugeTerpilih ?? '';
+    final String safetyPin = _safetyPinTerpilih ?? '';
+    final String tindakan = _tindakanTerpilih ?? '';
+
+    if (tanggalInspeksi.isEmpty || lokasiAlat.isEmpty ||
+        kondisiFisik.isEmpty || selang.isEmpty ||
+        pressureGauge.isEmpty || safetyPin.isEmpty || tindakan.isEmpty) {
+      _showSnackBar('Semua field laporan wajib diisi!', Colors.red);
+      setState(() { _isLoading = false; });
+      return;
+    }
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
+
+    if (accessToken == null) {
+      _showSnackBar('Anda belum login. Silakan login kembali.', Colors.red);
+      setState(() { _isLoading = false; });
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => LoginPage()), (route) => false);
+      return;
+    }
+
+    final Map<String, dynamic> requestBody = {
+      'qr_code_data': widget.qrCodeData,
+      'tanggal_inspeksi': tanggalInspeksi,
+      'lokasi_alat': lokasiAlat,
+      'foto': fotoPath,
+      'kondisi_fisik': kondisiFisik,
+      'selang': selang,
+      'pressure_gauge': pressureGauge,
+      'safety_pin': safetyPin,
+      'tindakan': tindakan,
+    };
+
+    final String apiUrl = 'http://10.0.2.2:8000/api/laporan-apk';
+    print('[DEBUG] Mengirim laporan ke: $apiUrl');
+    print('[DEBUG] Body laporan: ${jsonEncode(requestBody)}');
+    print('[DEBUG] Token: $accessToken');
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      print('[DEBUG] Respons laporan status: ${response.statusCode}');
+      print('[DEBUG] Respons laporan body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        _showSnackBar(responseData['message'] ?? 'Laporan berhasil disimpan!', Colors.green);
+        Navigator.pop(context);
+      } else if (response.statusCode == 422) {
+        final Map<String, dynamic> errorData = json.decode(response.body);
+        String errorMessage = "Validasi gagal: ";
+        if (errorData.containsKey('errors')) {
+          errorData['errors'].forEach((key, value) {
+            if (value is List && value.isNotEmpty) {
+              errorMessage += "${value[0]} ";
+            }
+          });
+        } else if (errorData.containsKey('message')) {
+          errorMessage = errorData['message'];
+        }
+        _showSnackBar(errorMessage, Colors.red);
+      } else if (response.statusCode == 401) {
+        _showSnackBar('Sesi habis. Silakan login kembali.', Colors.red);
+        await prefs.remove('user_data');
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => LoginPage()), (route) => false);
+      } else {
+        _showSnackBar('Terjadi kesalahan server: ${response.statusCode}', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Terjadi error koneksi: $e', Colors.red);
+    } finally {
+      setState(() { _isLoading = false; });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -99,8 +225,8 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman> {
                   ),
                   SizedBox(height: 10),
                   _buildInfoRow('ID Alat', widget.idAlat),
-                  _buildInfoRow('Nama Alat', widget.namaAlat), // Menampilkan Nama Alat
-                  _buildInfoRow('Tipe Alat', widget.tipeAlat),
+                  _buildInfoRow('Nama Alat', widget.namaAlat),
+                  _buildInfoRow('Tipe Alat', widget.tipeBarang),
                   _buildInfoRow('Lokasi', widget.lokasiAlat),
                   _buildInfoRow('Data QR', widget.qrCodeData),
                 ],
@@ -163,10 +289,10 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman> {
             SizedBox(height: 10),
             _bangunGrupPilihan(
               ['Good', 'Crack'],
-              _safetySealTerpilih,
+              _safetyPinTerpilih, // UBAH INI: ERD Anda pakai safety_pin, pastikan disamakan
                   (String? value) {
                 setState(() {
-                  _safetySealTerpilih = value;
+                  _safetyPinTerpilih = value;
                 });
               },
             ),
@@ -188,12 +314,8 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Laporan dikirim (UI Demo)!')),
-                  );
-                  Navigator.pop(context);
-                },
+                // PERBAIKAN: Hubungkan onPressed ke fungsi _kirimLaporan
+                onPressed: _isLoading ? null : _kirimLaporan,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade600,
                   padding: EdgeInsets.symmetric(vertical: 18),
@@ -202,7 +324,10 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman> {
                   ),
                   elevation: 5,
                 ),
-                child: Text(
+                // Tampilkan CircularProgressIndicator jika sedang loading
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
                   'Kirim Laporan',
                   style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -273,9 +398,7 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman> {
           Text('Unggah Foto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[800])),
           SizedBox(height: 10),
           InkWell(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Simulasi unggah foto')));
-            },
+            onTap: _pickImage,
             child: Container(
               width: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 18, horizontal: 20),
@@ -287,18 +410,28 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Pilih Gambar', style: TextStyle(color: Colors.grey[700], fontSize: 16)),
+                  Text(
+                    _imageFile != null ? 'Gambar Dipilih: ${_imageFile!.path.split('/').last}' : 'Pilih Gambar',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 16),
+                  ),
                   Icon(Icons.camera_alt, color: Colors.blueAccent),
                 ],
               ),
             ),
           ),
+          if (_imageFile != null) ...[
+            SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.file(_imageFile!, height: 150),
+            )
+          ]
         ],
       ),
     );
   }
 
-  // Widget untuk grup pilihan (ChoiceChip) yang bisa memilih (PERBAIKAN FINAL onSelected)
+
   Widget _bangunGrupPilihan(List<String> opsi, String? selectedValue, Function(String?) callback) {
     return Wrap(
       spacing: 12.0,

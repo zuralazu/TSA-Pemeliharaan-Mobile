@@ -98,7 +98,7 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
                 builder: (context) => FormulirLaporanHalaman(
                   idAlat: data['id_barang']?.toString() ?? 'N/A',
                   namaAlat: data['nama_barang'] ?? 'Tidak Dikenal',
-                  tipeAlat: data['tipe_barang'] ?? 'Tidak Dikenal',
+                  tipeBarang: data['tipe_barang'] ?? 'Tidak Dikenal',
                   lokasiAlat: data['lokasi_barang'] ?? 'Tidak Diketahui',
                   qrCodeData: qrCodeData,
                 ),
@@ -119,7 +119,7 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
               builder: (context) => FormulirLaporanHalaman(
                 idAlat: responseBody['id_barang']?.toString() ?? 'N/A',
                 namaAlat: responseBody['nama_barang'] ?? 'Tidak Dikenal',
-                tipeAlat: responseBody['tipe_barang'] ?? 'Tidak Dikenal',
+                tipeBarang: responseBody['tipe_barang'] ?? 'Tidak Dikenal',
                 lokasiAlat: responseBody['lokasi_barang'] ?? 'Tidak Diketahui',
                 qrCodeData: qrCodeData,
               ),

@@ -5,7 +5,7 @@ import 'package:tunassiakanugrah/pemeliharaan/qr_code.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:tunassiakanugrah/model/user.dart';
-// import 'package:tunassiakanugrah/pemeliharaan/modul_halaman.dart'; // Tetap dikomentari atau dihapus jika belum ada
+import 'package:tunassiakanugrah/pemeliharaan/modul_halaman.dart'; // Pastikan import ini ada
 
 class DasborHalaman extends StatefulWidget {
   @override
@@ -33,13 +33,11 @@ class _DasborHalamanState extends State<DasborHalaman> {
   }
 
   void _onItemTapped(int index) {
-    if (index == 2) {
+    if (index == 2) { // Tombol Scan QR di Bottom Nav
       Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
+    } else if (index == 3) { // Tombol Modul di Bottom Nav
+      Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
     }
-    // Blok ini tetap dikomentari/dihapus karena Modul belum aktif di Sprint ini
-    // else if (index == 3) {
-    //   Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
-    // }
     else {
       setState(() {
         _indeksTerpilih = index;
@@ -156,8 +154,9 @@ class _DasborHalamanState extends State<DasborHalaman> {
                   _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Halaman Shop belum tersedia')));
                   }, Colors.blueGrey),
+                  // Tombol "Modul" dihubungkan ke ModulHalaman
                   _bangunTombolAksiCepatBaru(Icons.menu_book, 'Modul', () {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Fitur Modul belum tersedia di Sprint ini!')));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
                   }, Colors.teal),
                   _bangunTombolAksiCepatBaru(Icons.qr_code_scanner, 'Scan QR', () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
@@ -248,7 +247,7 @@ class _DasborHalamanState extends State<DasborHalaman> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('APK Tracker'), // UBAH: Judul AppBar menjadi "APK Tracker"
+        title: const Text('APK Tracker'),
         actions: [
           IconButton(
             icon: Icon(Icons.notifications, color: Colors.blue.shade800, size: 28),

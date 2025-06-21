@@ -73,6 +73,7 @@ class _LoginPageState extends State<LoginPage> {
 
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_data', jsonEncode(user.toJson()));
+        await prefs.setString('access_token', user.accessToken ?? '');
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
