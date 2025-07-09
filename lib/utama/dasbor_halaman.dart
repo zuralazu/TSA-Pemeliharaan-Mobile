@@ -5,7 +5,9 @@ import 'package:tunassiakanugrah/pemeliharaan/qr_code.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:tunassiakanugrah/model/user.dart';
-import 'package:tunassiakanugrah/pemeliharaan/modul_halaman.dart'; // Pastikan import ini ada
+import 'package:tunassiakanugrah/pemeliharaan/modul_halaman.dart';
+import 'package:tunassiakanugrah/utama/kelola_akun_page.dart';
+import 'package:tunassiakanugrah/utama/inventory_page.dart';
 
 class DasborHalaman extends StatefulWidget {
   @override
@@ -33,16 +35,54 @@ class _DasborHalamanState extends State<DasborHalaman> {
   }
 
   void _onItemTapped(int index) {
-    if (index == 2) { // Tombol Scan QR di Bottom Nav
+    if (index == 2) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
-    } else if (index == 3) { // Tombol Modul di Bottom Nav
+    } else if (index == 3) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
-    }
-    else {
+    } else {
       setState(() {
         _indeksTerpilih = index;
       });
     }
+  }
+
+  Widget _bangunKartuStatusKecil(String judul, String nilai, Color startColor, Color endColor, IconData icon) {
+    return Flexible(
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Container(
+          height: 60,
+          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [startColor.withOpacity(0.8), endColor],
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  judul,
+                  style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                nilai,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _bangunKartuStatusBaru(String judul, String nilai, MaterialColor color, MaterialColor endColor, IconData icon) {
@@ -112,6 +152,42 @@ class _DasborHalamanState extends State<DasborHalaman> {
     );
   }
 
+  Widget _bangunRingkasanPerAlat() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 30),
+        Text(
+          'Ringkasan Berdasarkan Jenis Alat:',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+        ),
+        const SizedBox(height: 16),
+
+        const Text('APAR', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _bangunKartuStatusKecil('Total', '50', Colors.red.shade300, Colors.red, Icons.fire_extinguisher),
+            _bangunKartuStatusKecil('Baik', '45', Colors.green.shade300, Colors.green, Icons.check_circle),
+            _bangunKartuStatusKecil('Perlu Cek', '5', Colors.orange.shade300, Colors.orange, Icons.warning_amber),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+
+        const Text('Hydrant', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _bangunKartuStatusKecil('Total', '30', Colors.blue.shade300, Colors.blue, Icons.water_drop),
+            _bangunKartuStatusKecil('Baik', '28', Colors.green.shade300, Colors.green, Icons.check_circle),
+            _bangunKartuStatusKecil('Perlu Cek', '2', Colors.orange.shade300, Colors.orange, Icons.warning_amber),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> _opsiWidget = <Widget>[
@@ -121,15 +197,9 @@ class _DasborHalamanState extends State<DasborHalaman> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Selamat Datang, ${_currentUser?.username ?? "Pengguna"}!',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
-              ),
+              Text('Selamat Datang, ${_currentUser?.username ?? "Pengguna"}!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
               SizedBox(height: 10),
-              Text(
-                'Ringkasan Status APAR Anda:',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-              ),
+              Text('Ringkasan Status Alat:', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
               SizedBox(height: 25),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -139,11 +209,9 @@ class _DasborHalamanState extends State<DasborHalaman> {
                   _bangunKartuStatusBaru('Perlu Perhatian', '10', Colors.deepOrange, Colors.orange, Icons.warning_amber),
                 ],
               ),
+              _bangunRingkasanPerAlat(),
               SizedBox(height: 30),
-              Text(
-                'Aksi Cepat:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
-              ),
+              Text('Aksi Cepat:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
               SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -154,7 +222,6 @@ class _DasborHalamanState extends State<DasborHalaman> {
                   _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Halaman Shop belum tersedia')));
                   }, Colors.blueGrey),
-                  // Tombol "Modul" dihubungkan ke ModulHalaman
                   _bangunTombolAksiCepatBaru(Icons.menu_book, 'Modul', () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
                   }, Colors.teal),
@@ -164,10 +231,7 @@ class _DasborHalamanState extends State<DasborHalaman> {
                 ],
               ),
               SizedBox(height: 30),
-              Text(
-                'Berita & Informasi:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
-              ),
+              Text('Berita & Informasi:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
               SizedBox(height: 20),
               Container(
                 width: double.infinity,
@@ -176,20 +240,13 @@ class _DasborHalamanState extends State<DasborHalaman> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
-                    ),
+                    BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 8, offset: Offset(0, 4)),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Penting: Pembaruan SOP Pemeliharaan APAR Terbaru!',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+                    Text('Penting: Pembaruan SOP Pemeliharaan APAR Terbaru!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     SizedBox(height: 10),
                     Text(
                       'Tim kami telah merilis pembaruan penting terkait Standar Operasional Prosedur (SOP) untuk pemeliharaan Alat Proteksi Kebakaran (APAR). Mohon periksa bagian "Modul" untuk detail selengkapnya.',
@@ -200,10 +257,7 @@ class _DasborHalamanState extends State<DasborHalaman> {
                     SizedBox(height: 15),
                     Align(
                       alignment: Alignment.bottomRight,
-                      child: Text(
-                        'Baca Selengkapnya >>',
-                        style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
-                      ),
+                      child: Text('Baca Selengkapnya >>', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -213,48 +267,23 @@ class _DasborHalamanState extends State<DasborHalaman> {
           ),
         ),
       ),
-      Center(child: Text('Halaman Inventaris', style: TextStyle(fontSize: 24))),
+      Center(child: InventoryPage()),
       Center(child: Text('Tekan tombol Scan di tengah Bottom Nav untuk memindai QR', style: TextStyle(fontSize: 24), textAlign: TextAlign.center)),
       Center(child: Text('Halaman Modul Pemeliharaan', style: TextStyle(fontSize: 24))),
-      Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Halaman Profil Pengguna', style: TextStyle(fontSize: 24)),
-            SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () async {
-                SharedPreferences prefs = await SharedPreferences.getInstance();
-                await prefs.remove('user_data');
-
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginPage()),
-                      (Route<dynamic> route) => false,
-                );
-              },
-              icon: Icon(Icons.logout),
-              label: Text('Keluar'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-              ),
-            ),
-          ],
-        ),
-      ),
+      KelolaAkunPage(),
     ];
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: _indeksTerpilih == 4
+          ? null
+          : AppBar(
         automaticallyImplyLeading: false,
         title: const Text('APK Tracker'),
         actions: [
           IconButton(
             icon: Icon(Icons.notifications, color: Colors.blue.shade800, size: 28),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Fitur Notifikasi belum diimplementasikan.')),
-              );
+              Navigator.pushNamed(context, '/notifikasi');
             },
           ),
         ],
@@ -262,26 +291,11 @@ class _DasborHalamanState extends State<DasborHalaman> {
       body: _opsiWidget.elementAt(_indeksTerpilih),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory),
-            label: 'Inventory',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_scanner),
-            label: 'Scan',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.apps),
-            label: 'Modul',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
+          BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
+          BottomNavigationBarItem(icon: Icon(Icons.apps), label: 'Modul'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
         currentIndex: _indeksTerpilih,
         selectedItemColor: Colors.blueAccent,

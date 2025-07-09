@@ -1,4 +1,3 @@
-// lib/auth/login_page.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -74,6 +73,12 @@ class _LoginPageState extends State<LoginPage> {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_data', jsonEncode(user.toJson()));
         await prefs.setString('access_token', user.accessToken ?? '');
+
+        // Simpan timestamp login saat ini
+        await prefs.setInt('login_timestamp', DateTime.now().millisecondsSinceEpoch);
+        print('✅ USER DATA DISIMPAN: ${jsonEncode(user.toJson())}');
+        print('✅ TIMESTAMP DISIMPAN: ${DateTime.now().millisecondsSinceEpoch}');
+
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -156,7 +161,7 @@ class _LoginPageState extends State<LoginPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Selamat datang di APK Tracker', // UBAH: Nama aplikasi
+              'Selamat datang di APK Tracker',
               style: TextStyle(fontSize: 18, color: Colors.grey[700]),
             ),
             SizedBox(height: 5),
