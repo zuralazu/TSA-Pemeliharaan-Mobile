@@ -1,60 +1,90 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class NotifikasiPage extends StatelessWidget {
+class NotifikasiPage extends StatefulWidget {
   const NotifikasiPage({super.key});
 
   @override
+  State<NotifikasiPage> createState() => _NotifikasiPageState();
+}
+
+class _NotifikasiPageState extends State<NotifikasiPage> {
+  List<Map<String, dynamic>> notifikasiList = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchNotifikasi();
+  }
+
+  Future<void> fetchNotifikasi() async {
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8000/api/notifikasi'),
+      headers: {
+        'Accept': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> responseJson = json.decode(response.body);
+      final List<dynamic> data = responseJson['data'];
+
+      final List<Map<String, dynamic>> hasil = data.map<Map<String, dynamic>>((item) {
+        final barang = item['barang'] ?? {};
+        return {
+          'judul': item['judul'] ?? 'Notifikasi',
+          'deskripsi': item['deskripsi'] ?? 'Tidak ada deskripsi.',
+          'tipe': item['tipe'] ?? 'info',
+          'tanggal': item['tanggal'] ?? 'Tidak diketahui',
+          'baru': item['baru'] ?? false,
+          'nama_barang': barang['nama_barang'] ?? 'Tidak diketahui',
+          'lokasi': barang['lokasi'] ?? 'Tidak diketahui',
+        };
+      }).toList();
+
+
+      setState(() {
+        notifikasiList = hasil;
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+      print('[ERROR] Gagal memuat notifikasi (${response.statusCode})');
+    }
+  }
+
+  IconData getIcon(String type) {
+    switch (type) {
+      case 'success':
+        return Icons.check_circle_outline;
+      case 'info':
+        return Icons.info_outline;
+      case 'warning':
+        return Icons.warning_amber_outlined;
+      default:
+        return Icons.notifications_none;
+    }
+  }
+
+  Color getColor(String type) {
+    switch (type) {
+      case 'success':
+        return Colors.greenAccent.shade100;
+      case 'info':
+        return Colors.lightBlueAccent.shade100;
+      case 'warning':
+        return Colors.orangeAccent.shade100;
+      default:
+        return Colors.grey.shade300;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> notifikasiList = [
-      {
-        'judul': 'Laporan Disetujui ✅',
-        'deskripsi': 'Laporan pemeliharaan APAR #001 telah disetujui.',
-        'tipe': 'success',
-        'tanggal': '7 Juli 2025',
-        'baru': true,
-      },
-      {
-        'judul': 'Inspeksi Dijadwalkan 📅',
-        'deskripsi': 'Inspeksi APAR Gudang B dijadwalkan 10 Juli.',
-        'tipe': 'info',
-        'tanggal': '6 Juli 2025',
-        'baru': false,
-      },
-      {
-        'judul': 'Laporan Ditolak ⚠️',
-        'deskripsi': 'Laporan APAR #002 ditolak karena foto tidak jelas.',
-        'tipe': 'warning',
-        'tanggal': '5 Juli 2025',
-        'baru': true,
-      },
-    ];
-
-    IconData getIcon(String type) {
-      switch (type) {
-        case 'success':
-          return Icons.check_circle_outline;
-        case 'info':
-          return Icons.info_outline;
-        case 'warning':
-          return Icons.warning_amber_outlined;
-        default:
-          return Icons.notifications_none;
-      }
-    }
-
-    Color getColor(String type) {
-      switch (type) {
-        case 'success':
-          return Colors.greenAccent.shade100;
-        case 'info':
-          return Colors.lightBlueAccent.shade100;
-        case 'warning':
-          return Colors.orangeAccent.shade100;
-        default:
-          return Colors.grey.shade300;
-      }
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifikasi'),
@@ -63,7 +93,16 @@ class NotifikasiPage extends StatelessWidget {
         foregroundColor: Colors.black,
         elevation: 1,
       ),
-      body: ListView.builder(
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : notifikasiList.isEmpty
+          ? Center(
+        child: Text(
+          'Tidak ada notifikasi barang yang belum dicek.',
+          style: TextStyle(color: Colors.grey),
+        ),
+      )
+          : ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: notifikasiList.length,
         itemBuilder: (context, index) {
@@ -93,7 +132,12 @@ class NotifikasiPage extends StatelessWidget {
               title: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(item['judul'], style: TextStyle(fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text(
+                      item['judul'],
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                   if (item['baru'] == true)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -34,7 +34,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    final String apiUrl = 'http://10.0.2.2:8000/api/login';
+    final String apiUrl = 'http://10.0.2.2:8000/api/login-android';
 
     try {
       print('Mengirim permintaan Login ke: $apiUrl');

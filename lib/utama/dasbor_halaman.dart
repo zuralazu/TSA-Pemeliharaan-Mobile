@@ -1,11 +1,12 @@
 // lib/utama/dasbor_halaman.dart
 import 'package:flutter/material.dart';
-import 'package:tunassiakanugrah/auth/login_page.dart';
-import 'package:tunassiakanugrah/pemeliharaan/qr_code.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tunassiakanugrah/auth/login_page.dart';
 import 'package:tunassiakanugrah/model/user.dart';
 import 'package:tunassiakanugrah/pemeliharaan/modul_halaman.dart';
+import 'package:tunassiakanugrah/pemeliharaan/qr_code.dart';
 import 'package:tunassiakanugrah/utama/kelola_akun_page.dart';
 import 'package:tunassiakanugrah/utama/inventory_page.dart';
 
@@ -17,11 +18,14 @@ class DasborHalaman extends StatefulWidget {
 class _DasborHalamanState extends State<DasborHalaman> {
   int _indeksTerpilih = 0;
   User? _currentUser;
+  Map<String, dynamic> _ringkasanData = {};
+  String? _dropdownTerpilih;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _fetchRingkasanData();
   }
 
   Future<void> _loadUserData() async {
@@ -34,15 +38,25 @@ class _DasborHalamanState extends State<DasborHalaman> {
     }
   }
 
-  void _onItemTapped(int index) {
-    if (index == 2) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
-    } else if (index == 3) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
-    } else {
-      setState(() {
-        _indeksTerpilih = index;
-      });
+  Future<void> _fetchRingkasanData() async {
+    final url = Uri.parse('http://10.0.2.2:8000/api/barang/ringkasan');
+    try {
+      final response = await http.get(url);
+      print("STATUS CODE: ${response.statusCode}");
+      print("RESPONSE BODY: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print("DECODED DATA: $data");
+
+        setState(() {
+          _ringkasanData = data;
+        });
+      } else {
+        print("Gagal ambil data: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Terjadi error saat fetch data: $e");
     }
   }
 
@@ -85,6 +99,33 @@ class _DasborHalamanState extends State<DasborHalaman> {
     );
   }
 
+  Widget _buildRingkasanJenisAlat() {
+    if (_ringkasanData.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final selected = _dropdownTerpilih;
+    if (selected == null) return SizedBox.shrink();
+
+    final data = _ringkasanData[selected.toLowerCase()];
+    final total = data['total'].toString();
+    final baik = data['baik'].toString();
+    final perluCek = data['perlu_cek'].toString();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _bangunKartuStatusKecil('Total', total, Colors.red.shade300, Colors.red, Icons.fire_extinguisher),
+            _bangunKartuStatusKecil('Baik', baik, Colors.green.shade300, Colors.green, Icons.check_circle),
+            _bangunKartuStatusKecil('Perlu Cek', perluCek, Colors.orange.shade300, Colors.orange, Icons.warning_amber),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _bangunKartuStatusBaru(String judul, String nilai, MaterialColor color, MaterialColor endColor, IconData icon) {
     return Expanded(
       child: Card(
@@ -124,6 +165,169 @@ class _DasborHalamanState extends State<DasborHalaman> {
     );
   }
 
+  Widget _buildRingkasanTotal() {
+    if (_ringkasanData.isEmpty) {
+      return const Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          CircularProgressIndicator(),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _bangunKartuStatusBaru('Total Alat', _ringkasanData['total'].toString(), Colors.deepPurple, Colors.purple, Icons.storage),
+        _bangunKartuStatusBaru('Kondisi Baik', _ringkasanData['baik'].toString(), Colors.lightGreen, Colors.green, Icons.check_circle_outline),
+        _bangunKartuStatusBaru('Perlu Perhatian', _ringkasanData['perlu_cek'].toString(), Colors.deepOrange, Colors.orange, Icons.warning_amber),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _indeksTerpilih == 4
+          ? null
+          : AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('APK Tracker'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications, color: Colors.blue.shade800, size: 28),
+            onPressed: () {
+              Navigator.pushNamed(context, '/notifikasi');
+            },
+          ),
+        ],
+      ),
+      body: _indeksTerpilih == 0
+          ? RefreshIndicator(
+        onRefresh: _fetchRingkasanData,
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Selamat Datang, ${_currentUser?.username ?? "Pengguna"}!',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
+              SizedBox(height: 10),
+              Text('Ringkasan Status Alat:', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+              SizedBox(height: 25),
+              _buildRingkasanTotal(),
+              SizedBox(height: 30),
+              Text('Ringkasan Berdasarkan Jenis Alat:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+              SizedBox(height: 10),
+              DropdownButton<String>(
+                value: _dropdownTerpilih,
+                hint: Text('Pilih Jenis Alat'),
+                isExpanded: true,
+                items: ['APAR', 'HYDRANT'].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _dropdownTerpilih = value;
+                  });
+                },
+              ),
+              SizedBox(height: 10),
+              if (_dropdownTerpilih != null) _buildRingkasanJenisAlat(),
+              SizedBox(height: 30),
+              Text('Aksi Cepat:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _bangunTombolAksiCepatBaru(Icons.report_problem_outlined, 'Rusak &\nExpired', () {}, Colors.red),
+                  _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {}, Colors.blueGrey),
+                  _bangunTombolAksiCepatBaru(Icons.menu_book, 'Modul', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
+                  }, Colors.teal),
+                  _bangunTombolAksiCepatBaru(Icons.qr_code_scanner, 'Scan QR', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
+                  }, Colors.indigo),
+                ],
+              ),
+              SizedBox(height: 30),
+              Text(
+                'Berita Terkini:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+              ),
+              SizedBox(height: 10),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: ListTile(
+                  leading: Icon(Icons.campaign, color: Colors.blueAccent),
+                  title: Text('Pengecekan rutin akan dilakukan minggu ini'),
+                  subtitle: Text('Jadwal lengkap pengecekan akan diumumkan oleh supervisor.'),
+                ),
+              ),
+              SizedBox(height: 10),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: ListTile(
+                  leading: Icon(Icons.newspaper, color: Colors.green),
+                  title: Text('Perubahan SOP penggunaan APAR'),
+                  subtitle: Text('Mulai bulan depan akan ada pelatihan khusus penggunaan alat.'),
+                ),
+              ),
+
+            ],
+          ),
+        ),
+      )
+          : _indeksTerpilih == 1
+          ? InventoryPage()
+          : _indeksTerpilih == 4
+          ? KelolaAkunPage()
+          : Center(child: Text('Halaman belum tersedia')),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
+          BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
+          BottomNavigationBarItem(icon: Icon(Icons.apps), label: 'Modul'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+        ],
+        currentIndex: _indeksTerpilih,
+        selectedItemColor: Colors.blueAccent,
+        unselectedItemColor: Colors.grey,
+        onTap: (index) async {
+          if (index == 2) {
+            // Navigasi ke Scan QR dan tunggu hasil kembali
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => QrCodeHalaman()),
+            );
+
+            // Jika dari halaman Scan QR kita minta refresh
+            if (result == 'refresh') {
+              await _fetchRingkasanData();
+              setState(() {
+                _indeksTerpilih = 0; // Kembali ke dashboard
+              });
+            }
+          } else if (index == 3) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
+          } else {
+            setState(() {
+              _indeksTerpilih = index;
+            });
+          }
+        },
+        type: BottomNavigationBarType.fixed,
+      ),
+    );
+  }
+
   Widget _bangunTombolAksiCepatBaru(IconData ikon, String label, VoidCallback onPressed, MaterialColor color) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -149,160 +353,6 @@ class _DasborHalamanState extends State<DasborHalaman> {
           textAlign: TextAlign.center,
         ),
       ],
-    );
-  }
-
-  Widget _bangunRingkasanPerAlat() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 30),
-        Text(
-          'Ringkasan Berdasarkan Jenis Alat:',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
-        ),
-        const SizedBox(height: 16),
-
-        const Text('APAR', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            _bangunKartuStatusKecil('Total', '50', Colors.red.shade300, Colors.red, Icons.fire_extinguisher),
-            _bangunKartuStatusKecil('Baik', '45', Colors.green.shade300, Colors.green, Icons.check_circle),
-            _bangunKartuStatusKecil('Perlu Cek', '5', Colors.orange.shade300, Colors.orange, Icons.warning_amber),
-          ],
-        ),
-
-        const SizedBox(height: 20),
-
-        const Text('Hydrant', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            _bangunKartuStatusKecil('Total', '30', Colors.blue.shade300, Colors.blue, Icons.water_drop),
-            _bangunKartuStatusKecil('Baik', '28', Colors.green.shade300, Colors.green, Icons.check_circle),
-            _bangunKartuStatusKecil('Perlu Cek', '2', Colors.orange.shade300, Colors.orange, Icons.warning_amber),
-          ],
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final List<Widget> _opsiWidget = <Widget>[
-      Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Selamat Datang, ${_currentUser?.username ?? "Pengguna"}!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
-              SizedBox(height: 10),
-              Text('Ringkasan Status Alat:', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-              SizedBox(height: 25),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _bangunKartuStatusBaru('Total Alat', '100', Colors.deepPurple, Colors.purple, Icons.storage),
-                  _bangunKartuStatusBaru('Kondisi Baik', '90', Colors.lightGreen, Colors.green, Icons.check_circle_outline),
-                  _bangunKartuStatusBaru('Perlu Perhatian', '10', Colors.deepOrange, Colors.orange, Icons.warning_amber),
-                ],
-              ),
-              _bangunRingkasanPerAlat(),
-              SizedBox(height: 30),
-              Text('Aksi Cepat:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _bangunTombolAksiCepatBaru(Icons.report_problem_outlined, 'Rusak &\nExpired', () {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Halaman Rusak & Expired belum tersedia')));
-                  }, Colors.red),
-                  _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Halaman Shop belum tersedia')));
-                  }, Colors.blueGrey),
-                  _bangunTombolAksiCepatBaru(Icons.menu_book, 'Modul', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
-                  }, Colors.teal),
-                  _bangunTombolAksiCepatBaru(Icons.qr_code_scanner, 'Scan QR', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
-                  }, Colors.indigo),
-                ],
-              ),
-              SizedBox(height: 30),
-              Text('Berita & Informasi:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
-              SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 8, offset: Offset(0, 4)),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Penting: Pembaruan SOP Pemeliharaan APAR Terbaru!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 10),
-                    Text(
-                      'Tim kami telah merilis pembaruan penting terkait Standar Operasional Prosedur (SOP) untuk pemeliharaan Alat Proteksi Kebakaran (APAR). Mohon periksa bagian "Modul" untuk detail selengkapnya.',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 15),
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: Text('Baca Selengkapnya >>', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 30),
-            ],
-          ),
-        ),
-      ),
-      Center(child: InventoryPage()),
-      Center(child: Text('Tekan tombol Scan di tengah Bottom Nav untuk memindai QR', style: TextStyle(fontSize: 24), textAlign: TextAlign.center)),
-      Center(child: Text('Halaman Modul Pemeliharaan', style: TextStyle(fontSize: 24))),
-      KelolaAkunPage(),
-    ];
-
-    return Scaffold(
-      appBar: _indeksTerpilih == 4
-          ? null
-          : AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('APK Tracker'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.blue.shade800, size: 28),
-            onPressed: () {
-              Navigator.pushNamed(context, '/notifikasi');
-            },
-          ),
-        ],
-      ),
-      body: _opsiWidget.elementAt(_indeksTerpilih),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
-          BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
-          BottomNavigationBarItem(icon: Icon(Icons.apps), label: 'Modul'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-        ],
-        currentIndex: _indeksTerpilih,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-      ),
     );
   }
 }

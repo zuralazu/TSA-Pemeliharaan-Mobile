@@ -1,4 +1,3 @@
-// lib/pemeliharaan/qr_code.dart
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:tunassiakanugrah/pemeliharaan/form_laporan.dart';
@@ -46,110 +45,94 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
   void _onDetect(BarcodeCapture capture) async {
     if (_isDetecting) return;
 
-    final String? qrCodeData = capture.barcodes.first.rawValue;
+    final String? rawText = capture.barcodes.first.rawValue;
+    print('[DEBUG] Hasil Scan QR: $rawText');
 
-    if (qrCodeData == null || qrCodeData.isEmpty) {
-      _showSnackBar('QR tidak valid atau kosong', Colors.orange);
-      await _scannerController.start();
-      setState(() => _isDetecting = false);
+    String? nomorIdentifikasi;
+
+    if (rawText != null) {
+      final lines = rawText.split('\n');
+      for (var line in lines) {
+        if (line.toLowerCase().contains('nomor identifikasi')) {
+          final parts = line.split(':');
+          if (parts.length == 2) {
+            nomorIdentifikasi = parts[1].trim();
+            break;
+          }
+        }
+      }
+    }
+
+    if (nomorIdentifikasi == null || nomorIdentifikasi.isEmpty) {
+      await _showDialogError('QR tidak berisi Nomor Identifikasi yang valid.');
       return;
     }
 
     setState(() => _isDetecting = true);
     await _scannerController.stop();
 
-    // STEP 1: Tampilkan QR yang dibaca
-    _showSnackBar('QR Terbaca: $qrCodeData', Colors.blue);
-    await Future.delayed(Duration(seconds: 2));
-
-    final String apiUrl = 'http://10.0.2.2:8000/api/barang/$qrCodeData';
+    final String apiUrl = 'http://10.0.2.2:8000/api/barang/$nomorIdentifikasi';
 
     try {
       final response = await http.get(Uri.parse(apiUrl), headers: {'Accept': 'application/json'});
 
-      // STEP 2: Tampilkan status code
-      _showSnackBar('Status Code: ${response.statusCode}', Colors.green);
-      await Future.delayed(Duration(seconds: 2));
-
       if (response.statusCode == 200) {
-        // STEP 3: Tampilkan sebagian response body
-        String shortResponse = response.body.length > 100 ?
-        response.body.substring(0, 100) + '...' :
-        response.body;
-        _showSnackBar('Response: $shortResponse', Colors.purple);
-        await Future.delayed(Duration(seconds: 3));
-
         final Map<String, dynamic> responseBody = json.decode(response.body);
+        final data = responseBody['data'] ?? responseBody;
 
-        // STEP 4: Debug struktur data
-        if (responseBody.containsKey('data')) {
-          _showSnackBar('Found "data" key in response', Colors.cyan);
-          await Future.delayed(Duration(seconds: 1));
-
-          final data = responseBody['data'];
-          if (data != null && data['id_barang'] != null) {
-            _showSnackBar('ID Barang found: ${data['id_barang']}', Colors.lime);
-            await Future.delayed(Duration(seconds: 1));
-
-            // NAVIGASI KE FORM
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => FormulirLaporanHalaman(
-                  idAlat: data['id_barang']?.toString() ?? 'N/A',
-                  namaAlat: data['nama_barang'] ?? 'Tidak Dikenal',
-                  tipeBarang: data['tipe_barang'] ?? 'Tidak Dikenal',
-                  lokasiAlat: data['lokasi_barang'] ?? 'Tidak Diketahui',
-                  qrCodeData: qrCodeData,
-                ),
-              ),
-            );
-            return;
-          } else {
-            _showSnackBar('Data atau id_barang is null', Colors.red);
-          }
-        } else if (responseBody.containsKey('id_barang')) {
-          _showSnackBar('Direct format detected', Colors.cyan);
-          await Future.delayed(Duration(seconds: 1));
-
-          // NAVIGASI KE FORM (format direct)
-          Navigator.pushReplacement(
+        if (data['id_barang'] != null) {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => FormulirLaporanHalaman(
-                idAlat: responseBody['id_barang']?.toString() ?? 'N/A',
-                namaAlat: responseBody['nama_barang'] ?? 'Tidak Dikenal',
-                tipeBarang: responseBody['tipe_barang'] ?? 'Tidak Dikenal',
-                lokasiAlat: responseBody['lokasi_barang'] ?? 'Tidak Diketahui',
-                qrCodeData: qrCodeData,
+                idAlat: data['id_barang'].toString(),
+                namaAlat: data['nama_barang'] ?? 'Tidak Dikenal',
+                tipeBarang: data['tipe_barang'] ?? 'Tidak Dikenal',
+                lokasiAlat: data['lokasi_barang'] ?? 'Tidak Diketahui',
+                qrCodeData: nomorIdentifikasi!,
               ),
             ),
           );
+
+          // Jika setelah laporan kembali dengan result = 'refresh', kirim sinyal ke dashboard
+          if (result == 'refresh') {
+            Navigator.pop(context, 'refresh');
+          }
+
           return;
         } else {
-          _showSnackBar('No expected keys found in response', Colors.red);
+          await _showDialogError('Data barang tidak ditemukan dalam respons.');
         }
       } else if (response.statusCode == 404) {
-        _showSnackBar('QR tidak ditemukan (404)', Colors.orange);
+        await _showDialogError('QR tidak ditemukan di sistem.');
       } else {
-        _showSnackBar('Server error: ${response.statusCode}', Colors.red);
+        await _showDialogError('Terjadi kesalahan server: ${response.statusCode}');
       }
     } catch (e) {
-      _showSnackBar('Exception: $e', Colors.red);
+      await _showDialogError('Koneksi gagal: $e');
     }
 
     await _scannerController.start();
     setState(() => _isDetecting = false);
   }
 
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar(); // Hide previous snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: Duration(seconds: 2),
-      ),
+  Future<void> _showDialogError(String message) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Peringatan'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -252,7 +235,6 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
               ],
             ),
           ),
-
         ],
       ),
     );
