@@ -118,17 +118,6 @@ class _KelolaAkunPageState extends State<KelolaAkunPage> {
             ),
 
             ListTile(
-              leading: const Icon(Icons.lock),
-              title: const Text('Ubah Password'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Fitur ubah password coming soon.")),
-                );
-              },
-            ),
-
-            ListTile(
               leading: const Icon(Icons.info_outline),
               title: const Text('Tentang Perusahaan'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),

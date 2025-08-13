@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../auth/login_page.dart';
 
 class NotifikasiPage extends StatefulWidget {
   const NotifikasiPage({super.key});
@@ -20,40 +22,77 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
   }
 
   Future<void> fetchNotifikasi() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('access_token');
+
+    if (token == null) {
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
+      }
+      return;
+    }
+
     final response = await http.get(
       Uri.parse('http://10.0.2.2:8000/api/notifikasi'),
       headers: {
         'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
       },
     );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> responseJson = json.decode(response.body);
-      final List<dynamic> data = responseJson['data'];
+    if (mounted) {
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseJson = json.decode(response.body);
+        final List<dynamic> data = responseJson['data'];
 
-      final List<Map<String, dynamic>> hasil = data.map<Map<String, dynamic>>((item) {
-        final barang = item['barang'] ?? {};
-        return {
-          'judul': item['judul'] ?? 'Notifikasi',
-          'deskripsi': item['deskripsi'] ?? 'Tidak ada deskripsi.',
-          'tipe': item['tipe'] ?? 'info',
-          'tanggal': item['tanggal'] ?? 'Tidak diketahui',
-          'baru': item['baru'] ?? false,
-          'nama_barang': barang['nama_barang'] ?? 'Tidak diketahui',
-          'lokasi': barang['lokasi'] ?? 'Tidak diketahui',
-        };
-      }).toList();
+        final List<Map<String, dynamic>> hasil = data.map<Map<String, dynamic>>((item) {
+          final barang = item['barang'] ?? {};
+          return {
+            'judul': item['judul'] ?? 'Notifikasi',
+            'deskripsi': item['deskripsi'] ?? 'Tidak ada deskripsi.',
+            'tipe': item['tipe'] ?? 'info',
+            'tanggal': item['tanggal'] ?? 'Tidak diketahui',
+            'baru': item['baru'] ?? false,
+            'nama_barang': barang['nama_barang'] ?? 'Tidak diketahui',
+            'lokasi': barang['lokasi'] ?? 'Tidak diketahui',
+          };
+        }).toList();
 
-
-      setState(() {
-        notifikasiList = hasil;
-        isLoading = false;
-      });
-    } else {
-      setState(() {
-        isLoading = false;
-      });
-      print('[ERROR] Gagal memuat notifikasi (${response.statusCode})');
+        setState(() {
+          notifikasiList = hasil;
+          isLoading = false; // ✅ Tambahkan ini
+        });
+      } else if (response.statusCode == 401) {
+        // Tangani token tidak valid
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
+      } else if (response.statusCode == 403) {
+        // ✅ Tangani role yang tidak memiliki akses dengan pop-up
+        final Map<String, dynamic> responseJson = json.decode(response.body);
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Informasi!'),
+              content: Text(responseJson['message'] ?? 'Anda tidak memiliki izin untuk melihat halaman ini.'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(); // Keluar dari halaman notifikasi
+                  },
+                  child: const Text('Kembali'),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        setState(() { isLoading = false; });
+        print('[ERROR] Gagal memuat notifikasi (${response.statusCode})');
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal memuat notifikasi: ${response.statusCode}'))
+        );
+      }
     }
   }
 

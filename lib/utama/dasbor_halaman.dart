@@ -20,6 +20,8 @@ class _DasborHalamanState extends State<DasborHalaman> {
   User? _currentUser;
   Map<String, dynamic> _ringkasanData = {};
   String? _dropdownTerpilih;
+  bool _loadingUser = true;
+  bool _loadingRingkasan = true;
 
   @override
   void initState() {
@@ -34,31 +36,67 @@ class _DasborHalamanState extends State<DasborHalaman> {
     if (userDataJson != null) {
       setState(() {
         _currentUser = User.fromJson(jsonDecode(userDataJson));
+        _loadingUser = false;
       });
+    } else {
+      // jika tidak ada user, arahkan ke login
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
     }
   }
 
   Future<void> _fetchRingkasanData() async {
+    if (!mounted) return;
+    setState(() => _loadingRingkasan = true);
+
+    // Pastikan Anda menggunakan URL yang benar untuk server lokal
     final url = Uri.parse('http://10.0.2.2:8000/api/barang/ringkasan');
+
     try {
-      final response = await http.get(url);
-      print("STATUS CODE: ${response.statusCode}");
-      print("RESPONSE BODY: ${response.body}");
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      // 💡 PERBAIKI: Ganti kunci dari 'auth_token' menjadi 'access_token'
+      String? token = prefs.getString('access_token');
+
+      // Tambahkan log untuk debugging token
+      print("Menggunakan token: $token");
+
+      if (token == null) {
+        print("Token tidak ditemukan, mengarahkan ke login.");
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
+        return;
+      }
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          // Kirim token yang sudah pasti ada
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print("DECODED DATA: $data");
-
+        if (!mounted) return;
         setState(() {
           _ringkasanData = data;
+          _loadingRingkasan = false;
         });
       } else {
         print("Gagal ambil data: ${response.statusCode}");
+        print("Response Body: ${response.body}");
+        setState(() => _loadingRingkasan = false);
       }
     } catch (e) {
       print("Terjadi error saat fetch data: $e");
+      if (!mounted) return;
+      setState(() => _loadingRingkasan = false);
     }
   }
+
 
   Widget _bangunKartuStatusKecil(String judul, String nilai, Color startColor, Color endColor, IconData icon) {
     return Flexible(
@@ -96,33 +134,6 @@ class _DasborHalamanState extends State<DasborHalaman> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildRingkasanJenisAlat() {
-    if (_ringkasanData.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final selected = _dropdownTerpilih;
-    if (selected == null) return SizedBox.shrink();
-
-    final data = _ringkasanData[selected.toLowerCase()];
-    final total = data['total'].toString();
-    final baik = data['baik'].toString();
-    final perluCek = data['perlu_cek'].toString();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _bangunKartuStatusKecil('Total', total, Colors.red.shade300, Colors.red, Icons.fire_extinguisher),
-            _bangunKartuStatusKecil('Baik', baik, Colors.green.shade300, Colors.green, Icons.check_circle),
-            _bangunKartuStatusKecil('Perlu Cek', perluCek, Colors.orange.shade300, Colors.orange, Icons.warning_amber),
-          ],
-        ),
-      ],
     );
   }
 
@@ -166,9 +177,9 @@ class _DasborHalamanState extends State<DasborHalaman> {
   }
 
   Widget _buildRingkasanTotal() {
-    if (_ringkasanData.isEmpty) {
+    if (_loadingRingkasan) {
       return const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(),
         ],
@@ -178,153 +189,55 @@ class _DasborHalamanState extends State<DasborHalaman> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _bangunKartuStatusBaru('Total Alat', _ringkasanData['total'].toString(), Colors.deepPurple, Colors.purple, Icons.storage),
-        _bangunKartuStatusBaru('Kondisi Baik', _ringkasanData['baik'].toString(), Colors.lightGreen, Colors.green, Icons.check_circle_outline),
-        _bangunKartuStatusBaru('Perlu Perhatian', _ringkasanData['perlu_cek'].toString(), Colors.deepOrange, Colors.orange, Icons.warning_amber),
+        _bangunKartuStatusBaru(
+            'Total Alat',
+            _ringkasanData['total']?.toString() ?? '0',
+            Colors.deepPurple,
+            Colors.purple,
+            Icons.storage
+        ),
+        _bangunKartuStatusBaru(
+            'Kondisi Baik',
+            _ringkasanData['baik']?.toString() ?? '0',
+            Colors.lightGreen,
+            Colors.green,
+            Icons.check_circle_outline
+        ),
+        _bangunKartuStatusBaru(
+            'Perlu Perhatian',
+            _ringkasanData['perlu_cek']?.toString() ?? '0',
+            Colors.deepOrange,
+            Colors.orange,
+            Icons.warning_amber
+        ),
       ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _indeksTerpilih == 4
-          ? null
-          : AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('APK Tracker'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.blue.shade800, size: 28),
-            onPressed: () {
-              Navigator.pushNamed(context, '/notifikasi');
-            },
-          ),
-        ],
-      ),
-      body: _indeksTerpilih == 0
-          ? RefreshIndicator(
-        onRefresh: _fetchRingkasanData,
-        child: SingleChildScrollView(
-          physics: AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Selamat Datang, ${_currentUser?.username ?? "Pengguna"}!',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
-              SizedBox(height: 10),
-              Text('Ringkasan Status Alat:', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-              SizedBox(height: 25),
-              _buildRingkasanTotal(),
-              SizedBox(height: 30),
-              Text('Ringkasan Berdasarkan Jenis Alat:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
-              SizedBox(height: 10),
-              DropdownButton<String>(
-                value: _dropdownTerpilih,
-                hint: Text('Pilih Jenis Alat'),
-                isExpanded: true,
-                items: ['APAR', 'HYDRANT'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _dropdownTerpilih = value;
-                  });
-                },
-              ),
-              SizedBox(height: 10),
-              if (_dropdownTerpilih != null) _buildRingkasanJenisAlat(),
-              SizedBox(height: 30),
-              Text('Aksi Cepat:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _bangunTombolAksiCepatBaru(Icons.report_problem_outlined, 'Rusak &\nExpired', () {}, Colors.red),
-                  _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {}, Colors.blueGrey),
-                  _bangunTombolAksiCepatBaru(Icons.menu_book, 'Modul', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
-                  }, Colors.teal),
-                  _bangunTombolAksiCepatBaru(Icons.qr_code_scanner, 'Scan QR', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
-                  }, Colors.indigo),
-                ],
-              ),
-              SizedBox(height: 30),
-              Text(
-                'Berita Terkini:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
-              ),
-              SizedBox(height: 10),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: ListTile(
-                  leading: Icon(Icons.campaign, color: Colors.blueAccent),
-                  title: Text('Pengecekan rutin akan dilakukan minggu ini'),
-                  subtitle: Text('Jadwal lengkap pengecekan akan diumumkan oleh supervisor.'),
-                ),
-              ),
-              SizedBox(height: 10),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: ListTile(
-                  leading: Icon(Icons.newspaper, color: Colors.green),
-                  title: Text('Perubahan SOP penggunaan APAR'),
-                  subtitle: Text('Mulai bulan depan akan ada pelatihan khusus penggunaan alat.'),
-                ),
-              ),
+  Widget _buildRingkasanJenisAlat() {
+    if (_loadingRingkasan) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_dropdownTerpilih == null) return SizedBox.shrink();
 
-            ],
-          ),
+    final data = _ringkasanData[_dropdownTerpilih!.toLowerCase()];
+    if (data == null) return Text('Tidak ada data untuk jenis ini');
+
+    final total = data['total']?.toString() ?? '0';
+    final baik = data['baik']?.toString() ?? '0';
+    final perluCek = data['perlu_cek']?.toString() ?? '0';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _bangunKartuStatusKecil('Total', total, Colors.red.shade300, Colors.red, Icons.fire_extinguisher),
+            _bangunKartuStatusKecil('Baik', baik, Colors.green.shade300, Colors.green, Icons.check_circle),
+            _bangunKartuStatusKecil('Perlu Cek', perluCek, Colors.orange.shade300, Colors.orange, Icons.warning_amber),
+          ],
         ),
-      )
-          : _indeksTerpilih == 1
-          ? InventoryPage()
-          : _indeksTerpilih == 4
-          ? KelolaAkunPage()
-          : Center(child: Text('Halaman belum tersedia')),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
-          BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
-          BottomNavigationBarItem(icon: Icon(Icons.apps), label: 'Modul'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-        ],
-        currentIndex: _indeksTerpilih,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) async {
-          if (index == 2) {
-            // Navigasi ke Scan QR dan tunggu hasil kembali
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => QrCodeHalaman()),
-            );
-
-            // Jika dari halaman Scan QR kita minta refresh
-            if (result == 'refresh') {
-              await _fetchRingkasanData();
-              setState(() {
-                _indeksTerpilih = 0; // Kembali ke dashboard
-              });
-            }
-          } else if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
-          } else {
-            setState(() {
-              _indeksTerpilih = index;
-            });
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-      ),
+      ],
     );
   }
 
@@ -353,6 +266,177 @@ class _DasborHalamanState extends State<DasborHalaman> {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+
+  // Method untuk mendapatkan nama role yang lebih user-friendly
+  String _getRoleName(String role) {
+    switch (role) {
+      case 'staff_gudang':
+        return 'Staff Gudang';
+      case 'supervisor_umum':
+        return 'Supervisor Umum';
+      case 'inspektor':
+        return 'Inspektor';
+      default:
+        return 'Pengguna';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // loading user
+    if (_loadingUser) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      appBar: _indeksTerpilih == 4
+          ? null
+          : AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('APK Tracker'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications, color: Colors.blue.shade800, size: 28),
+            onPressed: () {
+              Navigator.pushNamed(context, '/notifikasi');
+            },
+          ),
+        ],
+      ),
+      body: _indeksTerpilih == 0
+          ? RefreshIndicator(
+        onRefresh: _fetchRingkasanData,
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                  'Selamat Datang, ${_currentUser?.username ?? "Pengguna"}!',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue.shade800)
+              ),
+              Text(
+                  '${_getRoleName(_currentUser?.role ?? '')}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600], fontStyle: FontStyle.italic)
+              ),
+              SizedBox(height: 10),
+              Text('Ringkasan Status Alat:', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+              SizedBox(height: 25),
+              _buildRingkasanTotal(),
+              SizedBox(height: 30),
+
+              // Tampilkan ringkasan jenis alat hanya untuk staff_gudang
+              if (_currentUser?.role == 'staff_gudang') ...[
+                Text(
+                    'Ringkasan Berdasarkan Jenis Alat:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])
+                ),
+                SizedBox(height: 10),
+                DropdownButton<String>(
+                  value: _dropdownTerpilih,
+                  hint: Text('Pilih Jenis Alat'),
+                  isExpanded: true,
+                  items: ['APAR', 'HYDRANT'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _dropdownTerpilih = value;
+                    });
+                  },
+                ),
+                SizedBox(height: 10),
+                if (_dropdownTerpilih != null) _buildRingkasanJenisAlat(),
+                SizedBox(height: 30),
+              ],
+
+              Text('Aksi Cepat:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _bangunTombolAksiCepatBaru(Icons.report_problem_outlined, 'Rusak &\nExpired', () {}, Colors.red),
+                  _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {}, Colors.blueGrey),
+                  _bangunTombolAksiCepatBaru(Icons.menu_book, 'Modul', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
+                  }, Colors.teal),
+                  _bangunTombolAksiCepatBaru(Icons.qr_code_scanner, 'Scan QR', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
+                  }, Colors.indigo),
+                ],
+              ),
+              SizedBox(height: 30),
+              Text('Berita Terkini:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+              SizedBox(height: 10),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: ListTile(
+                  leading: Icon(Icons.campaign, color: Colors.blueAccent),
+                  title: Text('Pengecekan rutin akan dilakukan minggu ini'),
+                  subtitle: Text('Jadwal lengkap pengecekan akan diumumkan oleh supervisor.'),
+                ),
+              ),
+              SizedBox(height: 10),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: ListTile(
+                  leading: Icon(Icons.newspaper, color: Colors.green),
+                  title: Text('Perubahan SOP penggunaan APAR'),
+                  subtitle: Text('Mulai bulan depan akan ada pelatihan khusus penggunaan alat.'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      )
+          : _indeksTerpilih == 1
+          ? InventoryPage()
+          : _indeksTerpilih == 4
+          ? KelolaAkunPage()
+          : Center(child: Text('Halaman belum tersedia')),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
+          BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
+          BottomNavigationBarItem(icon: Icon(Icons.apps), label: 'Modul'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+        ],
+        currentIndex: _indeksTerpilih,
+        selectedItemColor: Colors.blueAccent,
+        unselectedItemColor: Colors.grey,
+        onTap: (index) async {
+          if (index == 2) {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => QrCodeHalaman()),
+            );
+            if (result == 'refresh') {
+              await _fetchRingkasanData();
+              setState(() {
+                _indeksTerpilih = 0;
+              });
+            }
+          } else if (index == 3) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
+          } else {
+            setState(() {
+              _indeksTerpilih = index;
+            });
+          }
+        },
+        type: BottomNavigationBarType.fixed,
+      ),
     );
   }
 }

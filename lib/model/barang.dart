@@ -11,6 +11,7 @@ class Barang {
   final double? hargaJual;
   final String? ukuran;
   final String? merek;
+  final String? createdByRole;
 
   Barang({
     required this.id,
@@ -24,6 +25,7 @@ class Barang {
     this.hargaJual,
     this.ukuran,
     this.merek,
+    this.createdByRole,
   });
 
   factory Barang.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,7 @@ class Barang {
       hargaJual: double.tryParse(json['harga_jual'].toString()),
       ukuran: json['ukuran_barang'],
       merek: json['merek_barang'],
+      createdByRole: json['created_by_role'],
     );
   }
 }

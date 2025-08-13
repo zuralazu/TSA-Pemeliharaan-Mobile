@@ -31,6 +31,8 @@ class FormulirLaporanHalaman extends StatefulWidget {
 class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
     with TickerProviderStateMixin {
   final TextEditingController _tanggalController = TextEditingController();
+  final TextEditingController _catatanTindakanController = TextEditingController();
+
   String? _lokasiDropdownValue;
   File? _imageFile;
 
@@ -43,6 +45,10 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
   String? _safetyPinTerpilih;
 
   bool _isLoading = false;
+
+  bool get isAPAR => _detectTipeBarang() == 'APAR';
+  bool get isHYDRANT => _detectTipeBarang() == 'HYDRANT';
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -92,6 +98,8 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
   @override
   void dispose() {
     _animationController.dispose();
+    _tanggalController.dispose();
+    _catatanTindakanController.dispose();
     super.dispose();
   }
 
@@ -169,10 +177,23 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
     final String lokasi = _lokasiDropdownValue ?? '';
     final String kondisiFisik = _kondisiFisikTerpilih ?? '';
     final String tindakan = _tindakanTerpilih ?? '';
+    final String catatanTindakan = _catatanTindakanController.text.trim();
     final bool isAPAR = _detectTipeBarang() == 'APAR';
 
     if (tanggal.isEmpty || lokasi.isEmpty || kondisiFisik.isEmpty || tindakan.isEmpty) {
       _showSnackBar('Semua field wajib diisi!', Colors.red);
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    if (isAPAR && _tindakanTerpilih == 'Ganti' && catatanTindakan.isEmpty) {
+      _showSnackBar('Catatan tindakan wajib diisi untuk APAR jika memilih Ganti!', Colors.red);
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    if (isHYDRANT && _tindakanTerpilih == 'Repair' && catatanTindakan.isEmpty) {
+      _showSnackBar('Catatan tindakan wajib diisi untuk HYDRANT jika memilih Repair!', Colors.red);
       setState(() => _isLoading = false);
       return;
     }
@@ -196,6 +217,7 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
       'lokasi_alat': lokasi,
       'kondisi_fisik': kondisiFisik,
       'tindakan': tindakan,
+      'catatan_tindakan': catatanTindakan,
       'selang': isAPAR ? (_selangTerpilih ?? '') : '',
       'pressure_gauge': isAPAR ? (_pressureGaugeTerpilih ?? '') : '',
       'safety_pin': isAPAR ? (_safetyPinTerpilih ?? '') : '',
@@ -224,7 +246,6 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
 
     setState(() => _isLoading = false);
   }
-
 
   void _showSnackBar(String pesan, Color warna) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -333,344 +354,65 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
               return _buildModernChoiceChip(
                 option,
                 selectedValue == option,
-                    () => onChanged(option),
+                    () {
+                  setState(() {
+                    onChanged(option);
+                  });
+                },
               );
             }).toList(),
           ),
+          if (title == 'Tindakan yang Diperlukan' &&
+              ((isAPAR && _tindakanTerpilih == 'Ganti') ||
+                  (isHYDRANT && _tindakanTerpilih == 'Repair')))
+            Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: TextField(
+                controller: _catatanTindakanController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Catatan tindakan...',
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                ),
+              ),
+            ),
+
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final String detectedType = _detectTipeBarang();
-    final bool isAPAR = detectedType == 'APAR';
-    final bool isHYDRANT = detectedType == 'HYDRANT';
-
-    if (detectedType == 'UNKNOWN') {
-      return Scaffold(
-        backgroundColor: Colors.grey[100],
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Form Pelaporan $detectedType',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        backgroundColor: isAPAR ? Colors.red[600] : Colors.blue[600],
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isAPAR
-                  ? [Colors.red[400]!, Colors.red[600]!]
-                  : [Colors.blue[400]!, Colors.blue[600]!],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+  Widget _buildCompactOptionGroup(String title, List<String> options, String? selectedValue, Function(String) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
           ),
         ),
-      ),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Info Card
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isAPAR
-                        ? [Colors.red[50]!, Colors.red[100]!]
-                        : [Colors.blue[50]!, Colors.blue[100]!],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isAPAR ? Colors.red[200]! : Colors.blue[200]!,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          isAPAR ? Icons.fire_extinguisher : Icons.water_drop,
-                          color: isAPAR ? Colors.red[700] : Colors.blue[700],
-                          size: 28,
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          'Informasi Perangkat',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: isAPAR ? Colors.red[800] : Colors.blue[800],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16),
-                    _buildInfoRow('Nama', widget.namaAlat),
-                    _buildInfoRow('Tipe', detectedType),
-                    _buildInfoRow('Lokasi', widget.lokasiAlat),
-                    _buildInfoRow('QR Code', widget.qrCodeData),
-                    _buildInfoRow('ID', widget.idAlat),
-                  ],
-                ),
-              ),
-              SizedBox(height: 24),
-
-              // Date Input
-              _buildInputField(
-                'Tanggal Inspeksi',
-                Icons.calendar_today,
-                TextField(
-                  controller: _tanggalController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Pilih tanggal',
-                  ),
-                ),
-              ),
-
-              // Location Dropdown
-              _buildInputField(
-                'Lokasi Perangkat',
-                Icons.location_on,
-                DropdownButtonFormField<String>(
-                  value: _lokasiDropdownValue,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Pilih lokasi',
-                  ),
-                  dropdownColor: Colors.white,
-                  items: _daftarLokasi.map((lok) {
-                    return DropdownMenuItem(
-                      value: lok,
-                      child: Row(
-                        children: [
-                          Icon(Icons.business, size: 16, color: Colors.grey[600]),
-                          SizedBox(width: 8),
-                          Text(lok),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _lokasiDropdownValue = val!;
-                    });
-                  },
-                ),
-              ),
-
-              // Image Upload
-              Container(
-                margin: EdgeInsets.only(bottom: 24),
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey[200]!,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.photo_camera, color: Colors.grey[700]),
-                        SizedBox(width: 12),
-                        Text(
-                          'Unggah Foto',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey[50],
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              _imageFile != null ? Icons.check_circle : Icons.cloud_upload,
-                              size: 48,
-                              color: _imageFile != null ? Colors.green : Colors.grey[400],
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              _imageFile != null ? 'Foto berhasil dipilih' : 'Ketuk untuk mengambil foto',
-                              style: TextStyle(
-                                color: _imageFile != null ? Colors.green : Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            if (_imageFile != null) ...[
-                              SizedBox(height: 8),
-                              Text(
-                                _imageFile!.path.split('/').last,
-                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_imageFile != null) ...[
-                      SizedBox(height: 16),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          _imageFile!,
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              // General Fields
-              _buildOptionGroup(
-                'Kondisi Fisik',
-                ['Good', 'Korosif', 'Bad'],
-                _kondisiFisikTerpilih,
-                    (val) => setState(() => _kondisiFisikTerpilih = val),
-                accentColor: Colors.orange,
-              ),
-
-              // APAR Specific Fields
-              if (isAPAR) ...[
-                Container(
-                  padding: EdgeInsets.all(20),
-                  margin: EdgeInsets.only(bottom: 24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.red[50]!, Colors.red[100]!],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red[200]!),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.fire_extinguisher, color: Colors.red[700], size: 24),
-                          SizedBox(width: 12),
-                          Text(
-                            'Checklist Khusus APAR',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red[800],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-
-                      _buildCompactOptionGroup('Kondisi Selang', ['Good', 'Bad', 'Crack'],
-                          _selangTerpilih, (val) => setState(() => _selangTerpilih = val)),
-
-                      _buildCompactOptionGroup('Pressure Gauge', ['Good', 'Bad'],
-                          _pressureGaugeTerpilih, (val) => setState(() => _pressureGaugeTerpilih = val)),
-
-                      _buildCompactOptionGroup('Safety Seal', ['Good', 'Crack'],
-                          _safetyPinTerpilih, (val) => setState(() => _safetyPinTerpilih = val)),
-                    ],
-                  ),
-                ),
-              ],
-
-              // Action Field
-              _buildOptionGroup(
-                'Tindakan yang Diperlukan',
-                ['Isi Ulang', 'Ganti'],
-                _tindakanTerpilih,
-                    (val) => setState(() => _tindakanTerpilih = val),
-                accentColor: Colors.green,
-              ),
-
-              // Submit Button
-              Container(
-                width: double.infinity,
-                height: 56,
-                margin: EdgeInsets.only(top: 10, bottom: 20),
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _kirimLaporan,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isAPAR ? Colors.red[600] : Colors.blue[600],
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 8,
-                    shadowColor: (isAPAR ? Colors.red[600] : Colors.blue[600])!.withOpacity(0.3),
-                  ),
-                  child: _isLoading
-                      ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Text('Mengirim...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    ],
-                  )
-                      : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.send, size: 20),
-                      SizedBox(width: 8),
-                      Text('Kirim Laporan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+        SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((option) {
+            return _buildModernChoiceChip(
+              option,
+              selectedValue == option,
+                  () => onChanged(option),
+            );
+          }).toList(),
         ),
-      ),
+        SizedBox(height: 16),
+      ],
     );
   }
 
@@ -743,32 +485,183 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
     );
   }
 
-  Widget _buildCompactOptionGroup(String title, List<String> options, String? selectedValue, Function(String) onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
+  @override
+  Widget build(BuildContext context) {
+    final String detectedType = _detectTipeBarang();
+    // final bool isAPAR = detectedType == 'APAR';
+    // final bool isHYDRANT = detectedType == 'HYDRANT';
+
+    if (detectedType == 'UNKNOWN') {
+      return Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: Text(
+          'Form Pelaporan $detectedType',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        backgroundColor: isAPAR ? Colors.red[600] : Colors.blue[600],
+        elevation: 0,
+      ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Card Info
+              Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isAPAR
+                        ? [Colors.red[50]!, Colors.red[100]!]
+                        : [Colors.blue[50]!, Colors.blue[100]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isAPAR ? Colors.red[200]! : Colors.blue[200]!,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoRow('Nama', widget.namaAlat),
+                    _buildInfoRow('Tipe', detectedType),
+                    _buildInfoRow('Lokasi', widget.lokasiAlat),
+                    _buildInfoRow('QR Code', widget.qrCodeData),
+                    _buildInfoRow('ID', widget.idAlat),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+
+              _buildInputField(
+                'Tanggal Inspeksi',
+                Icons.calendar_today,
+                TextField(
+                  controller: _tanggalController,
+                  readOnly: true,
+                  decoration: InputDecoration(border: InputBorder.none),
+                ),
+              ),
+
+              _buildInputField(
+                'Lokasi Perangkat',
+                Icons.location_on,
+                DropdownButtonFormField<String>(
+                  value: _lokasiDropdownValue,
+                  decoration: InputDecoration(border: InputBorder.none),
+                  items: _daftarLokasi.map((lok) {
+                    return DropdownMenuItem(
+                      value: lok,
+                      child: Text(lok),
+                    );
+                  }).toList(),
+                  onChanged: (val) => setState(() => _lokasiDropdownValue = val!),
+                ),
+              ),
+
+              _buildInputField(
+                'Foto Bukti',
+                Icons.camera_alt,
+                Column(
+                  children: [
+                    if (_imageFile != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(_imageFile!,
+                            height: 200, width: double.infinity, fit: BoxFit.cover),
+                      ),
+                    SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0), // biar nggak mepet
+                      child: ElevatedButton.icon(
+                        onPressed: _pickImage,
+                        icon: Icon(Icons.camera_alt),
+                        label: Text('Ambil Foto'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isAPAR ? Colors.red[600] : Colors.blue[600],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          minimumSize: Size(double.infinity, 50), // full lebar tapi ada jarak dari padding
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+
+              _buildOptionGroup(
+                'Kondisi Fisik',
+                ['Good', 'Korosif', 'Bad'],
+                _kondisiFisikTerpilih,
+                    (val) => setState(() => _kondisiFisikTerpilih = val),
+                accentColor: Colors.orange,
+              ),
+
+              if (isAPAR)
+                Container(
+                  padding: EdgeInsets.all(15),
+                  margin: EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.red[50]!, Colors.red[100]!],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildCompactOptionGroup('Selang', ['Good', 'Bad', 'Crack'], _selangTerpilih,
+                              (val) => setState(() => _selangTerpilih = val)),
+                      _buildCompactOptionGroup('Pressure Gauge', ['Good', 'Bad'], _pressureGaugeTerpilih,
+                              (val) => setState(() => _pressureGaugeTerpilih = val)),
+                      _buildCompactOptionGroup('Safety Pin', ['Good', 'Crack'], _safetyPinTerpilih,
+                              (val) => setState(() => _safetyPinTerpilih = val)),
+                    ],
+                  ),
+                ),
+
+              _buildOptionGroup(
+                'Tindakan yang Diperlukan',
+                isAPAR
+                    ? ['Isi Ulang', 'Good', 'Ganti']
+                    : ['Good', 'Broken', 'Repair'],
+                _tindakanTerpilih,
+                    (val) => setState(() => _tindakanTerpilih = val),
+              ),
+
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _kirimLaporan,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isAPAR ? Colors.red[600] : Colors.blue[600],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  minimumSize: Size(double.infinity, 50),
+                ),
+                child: _isLoading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text('Kirim Laporan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ],
           ),
         ),
-        SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: options.map((option) {
-            return _buildModernChoiceChip(
-              option,
-              selectedValue == option,
-                  () => onChanged(option),
-            );
-          }).toList(),
-        ),
-        SizedBox(height: 16),
-      ],
+      ),
     );
   }
 }
