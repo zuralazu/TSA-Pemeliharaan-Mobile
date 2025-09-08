@@ -22,6 +22,7 @@ class _DasborHalamanState extends State<DasborHalaman> {
   String? _dropdownTerpilih;
   bool _loadingUser = true;
   bool _loadingRingkasan = true;
+  bool _adaNotifBaru = false;
 
   @override
   void initState() {
@@ -299,13 +300,35 @@ class _DasborHalamanState extends State<DasborHalaman> {
         automaticallyImplyLeading: false,
         title: const Text('APK Tracker'),
         actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.blue.shade800, size: 28),
-            onPressed: () {
-              Navigator.pushNamed(context, '/notifikasi');
-            },
+          Stack(
+            children: [
+              IconButton(
+                icon: Icon(Icons.notifications, color: Colors.blue.shade800, size: 28),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/notifikasi').then((_) {
+                    // setelah buka halaman notif, tandai semua notif sebagai dibaca
+                    setState(() {
+                      _adaNotifBaru = false;
+                    });
+                  });
+                },
+              ),
+              if (_adaNotifBaru) // <-- kalau ada notif baru
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Container(
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
+
       ),
       body: _indeksTerpilih == 0
           ? RefreshIndicator(

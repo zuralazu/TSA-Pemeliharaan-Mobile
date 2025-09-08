@@ -32,13 +32,15 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.nomorIdentifikasi != null && widget.nomorIdentifikasi!.isNotEmpty) {
+    if (widget.nomorIdentifikasi != null) {
+      // Jangan auto-generate kalau memang dari QR kosong
       _nomorIdentifikasiController.text = widget.nomorIdentifikasi!;
     } else {
-      // Generate nomor identifikasi otomatis jika kosong
+      // Hanya generate kalau user tambah barang manual (tanpa scan QR)
       _generateNomorIdentifikasi();
     }
   }
+
 
   void _generateNomorIdentifikasi() {
     // Generate nomor identifikasi dengan format timestamp

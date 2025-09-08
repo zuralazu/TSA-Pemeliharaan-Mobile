@@ -52,10 +52,13 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
         if (parts.length >= 2) {
           return parts.sublist(1).join(':').trim();
         }
+        // kalau cuma "Nomor Identifikasi:" tanpa isi
+        return '';
       }
     }
     return raw.trim();
   }
+
 
   // Helper method untuk normalisasi role
   String _normalizeRole(String role) {
@@ -156,9 +159,10 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
 
-        if (responseBody['status'] == 'not_found') {
+        // Barang belum ada di DB atau id_barang masih null
+        if (responseBody['status'] == 'not_found' ||
+            (responseBody['data'] != null && responseBody['data']['id_barang'] == null)) {
           if (_normalizeRole(role) == 'supervisor_umum') {
-            // Barang belum ada, supervisor umum boleh tambah
             await Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -167,7 +171,7 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
             );
             return;
           } else {
-            await _showDialogError('QR tidak ditemukan di sistem.');
+            await _showDialogError('QR ini belum memiliki data barang. Hubungi supervisor umum.');
             setState(() => _isDetecting = false);
             await _scannerController.start();
             return;
@@ -238,8 +242,8 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
           await _scannerController.start();
           return;
         }
-
-      } else if (response.statusCode == 404) {
+      }
+      else if (response.statusCode == 404) {
         await _showDialogError('QR tidak ditemukan di sistem.');
       } else if (response.statusCode == 403) {
         try {
@@ -259,7 +263,7 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
       await _showDialogError('Koneksi gagal: $e');
     } finally {
       // Restart scanner hanya jika tidak ada navigasi yang terjadi
-      if (mounted) {
+      if (mounted && Navigator.canPop(context)) {
         await _scannerController.start();
         setState(() => _isDetecting = false);
       }
