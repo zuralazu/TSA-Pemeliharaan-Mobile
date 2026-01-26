@@ -43,6 +43,540 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
     super.dispose();
   }
 
+  Future<void> _showPreviewBarangDialog(
+      Map<String, dynamic> data,
+      String qrCode,
+      ) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header dengan Gradient
+                Container(
+                  padding: EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.blue.shade600, Colors.blue.shade800],
+                    ),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.inventory_2_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Preview Alat',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Verifikasi data alat',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildEnhancedDetailRow(
+                            'Nama Alat',
+                            data['nama_barang']?.toString() ?? '-',
+                            Icons.label_rounded,
+                            Colors.blue,
+                          ),
+                          SizedBox(height: 12),
+                          _buildEnhancedDetailRow(
+                            'Tipe',
+                            data['tipe_barang']?.toString() ?? '-',
+                            Icons.category_rounded,
+                            Colors.purple,
+                          ),
+                          SizedBox(height: 12),
+                          _buildEnhancedDetailRow(
+                            'Kode QR',
+                            qrCode ?? '-',
+                            Icons.qr_code_rounded,
+                            Colors.teal,
+                          ),
+                          SizedBox(height: 20),
+                          // Success Badge
+                          Container(
+                            padding: EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.green.shade50,
+                                  Colors.green.shade100.withOpacity(0.5),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.green.shade200,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Validasi Berhasil',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green.shade900,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Barang siap untuk inspeksi',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.green.shade700,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // Actions
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 50,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              _scannerController.start();
+                              _isDetecting = false;
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Colors.red.shade300, width: 2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.close_rounded, color: Colors.red, size: 15),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Batal',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.blue.shade600, Colors.blue.shade800],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FormulirLaporanHalaman(
+                                    idAlat: data['id_barang'].toString(),
+                                    namaAlat: data['nama_barang'] ?? '-',
+                                    tipeBarang: data['tipe_barang'],
+                                    lokasiAlat: data['lokasi_barang'] ?? '-',
+                                    qrCodeData: qrCode,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.fact_check_rounded, color: Colors.white,size: 17),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Lanjut Inspeksi',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+// Widget helper untuk detail row
+  Widget _buildEnhancedDetailRow(
+      String label,
+      String value,
+      IconData icon,
+      Color color,
+      ) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[900],
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showDialogError(String message) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header dengan Gradient Merah
+                Container(
+                  padding: EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.red.shade500, Colors.red.shade700],
+                    ),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.warning_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Peringatan',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Terjadi kesalahan',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.red.shade200,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.info_outline_rounded,
+                                    color: Colors.red.shade700,
+                                    size: 20,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    message,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.red.shade900,
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // Action Button
+                Padding(
+                  padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: Container(
+                    width: double.infinity,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.red.shade500, Colors.red.shade700],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Mengerti',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   String _parseNomorIdentifikasi(String raw) {
     final lines = raw.split('\n');
     for (var line in lines) {
@@ -70,220 +604,77 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_isDetecting) return;
 
-    final String? rawText = capture.barcodes.first.rawValue;
-    print('[DEBUG] Hasil Scan QR: $rawText');
-
+    final rawText = capture.barcodes.first.rawValue;
     if (rawText == null || rawText.trim().isEmpty) {
-      await _showDialogError('QR tidak berisi Nomor Identifikasi yang valid.');
+      await _showDialogError('QR tidak valid.');
       return;
     }
 
-    final String parsed = _parseNomorIdentifikasi(rawText);
-    print('[DEBUG] Parsed nomorIdentifikasi: "$parsed"');
+    final parsed = _parseNomorIdentifikasi(rawText);
+    if (parsed.isEmpty) {
+      await _showDialogError('QR tidak dikenali.');
+      return;
+    }
 
     setState(() => _isDetecting = true);
     await _scannerController.stop();
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userDataString = prefs.getString('user_data');
-    String? token = prefs.getString('access_token');
-
-    String role = '';
-    String userId = '';
-    if (userDataString != null) {
-      try {
-        final user = jsonDecode(userDataString);
-        role = (user['role'] ?? '').toString();
-        userId = (user['id'] ?? '').toString();
-        print('[DEBUG] User role from SharedPrefs: "$role"');
-      } catch (e) {
-        print('[ERROR] Error parsing user data: $e');
-        role = '';
-        userId = '';
-      }
-    }
-
-    // Supervisor umum boleh akses halaman tambah barang jika QR kosong
-    if (parsed.isEmpty) {
-      if (_normalizeRole(role) == 'supervisor_umum') {
-        await Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => TambahBarangPage(
-              nomorIdentifikasi: '',
-            ),
-          ),
-        );
-        return;
-      } else {
-        await _showAccessDeniedDialog(message: 'Hanya supervisor umum yang dapat menambahkan barang baru.');
-        setState(() => _isDetecting = false);
-        await _scannerController.start();
-        return;
-      }
-    }
-
-    String apiUrl;
-    Map<String, String> headers = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-
     try {
-      http.Response response;
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+      final userData = jsonDecode(prefs.getString('user_data') ?? '{}');
 
-      if (_normalizeRole(role) == 'supervisor_umum') {
-        // Endpoint khusus supervisor umum dengan POST
-        apiUrl = 'http://10.0.2.2:8000/api/supervisor-umum/scan-qr';
-        final body = json.encode({'nomor_identifikasi': parsed});
+      final role = (userData['role'] ?? '').toString().toLowerCase();
 
-        print('[DEBUG] Calling supervisor umum endpoint: $apiUrl');
-        print('[DEBUG] Request body: $body');
-
-        response = await http.post(
-          Uri.parse(apiUrl),
-          headers: headers,
-          body: body,
+      // 🔒 VALIDASI ROLE
+      if (role != 'inspektor') {
+        await _showAccessDeniedDialog(
+            message: 'Hanya INSPEKTOR yang dapat melakukan inspeksi.'
         );
-      } else {
-        // Endpoint umum GET
-        apiUrl = 'http://10.0.2.2:8000/api/barang/${Uri.encodeComponent(parsed)}';
-        print('[DEBUG] Calling general endpoint: $apiUrl');
-        response = await http.get(Uri.parse(apiUrl), headers: headers);
+        return;
       }
 
-      print('[DEBUG] Response status: ${response.statusCode}');
-      print('[DEBUG] Response body: ${response.body}');
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8000/api/barang/${Uri.encodeComponent(parsed)}'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = json.decode(response.body);
-
-        // Barang belum ada di DB atau id_barang masih null
-        if (responseBody['status'] == 'not_found' ||
-            (responseBody['data'] != null && responseBody['data']['id_barang'] == null)) {
-          if (_normalizeRole(role) == 'supervisor_umum') {
-            await Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => TambahBarangPage(nomorIdentifikasi: parsed),
-              ),
-            );
-            return;
-          } else {
-            await _showDialogError('QR ini belum memiliki data barang. Hubungi supervisor umum.');
-            setState(() => _isDetecting = false);
-            await _scannerController.start();
-            return;
-          }
-        }
-
-        // Handle response dengan data barang
-        final data = responseBody['data'] ?? responseBody;
-
-        if (data['id_barang'] != null) {
-          final currentRole = role.toLowerCase().trim();
-          final creatorRole = (data['created_by_role'] ?? '').toString().toLowerCase().trim();
-          final creatorId = (data['created_by_id'] ?? '').toString();
-
-          print('[DEBUG] currentRole: $currentRole, creatorRole: $creatorRole');
-          print('[DEBUG] User ID: $userId, Created By ID: $creatorId');
-
-          bool hasAccess = false;
-          String accessDeniedMessage = 'Anda tidak memiliki akses ke barang ini.';
-
-          if (currentRole == 'supervisor_umum') {
-            if (creatorRole == 'supervisor_umum' && userId == creatorId) {
-              hasAccess = true;
-            } else {
-              accessDeniedMessage = 'Supervisor hanya dapat mengakses barang yang diinput sendiri.';
-            }
-          } else if (currentRole == 'inspektor') {
-            if (creatorRole == 'supervisor_umum') {
-              hasAccess = true;
-            } else {
-              accessDeniedMessage = 'Inspektor hanya dapat mengakses barang yang diinput oleh supervisor umum.';
-            }
-          } else if (currentRole == 'staff_gudang') {
-            if (creatorRole == 'staff_gudang') {
-              hasAccess = true;
-            } else {
-              accessDeniedMessage = 'Staff gudang hanya dapat mengakses barang yang diinput oleh staff gudang.';
-            }
-          }
-
-          if (hasAccess) {
-            // Navigasi ke halaman yang benar
-            if (currentRole == 'supervisor_umum') {
-              await _showBarangDetailDialog(data);
-            } else {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FormulirLaporanHalaman(
-                    idAlat: data['id_barang'].toString(),
-                    namaAlat: data['nama_barang'] ?? 'Tidak Dikenal',
-                    tipeBarang: data['tipe_barang'] ?? 'Tidak Dikenal',
-                    lokasiAlat: data['lokasi_barang'] ?? 'Tidak Diketahui',
-                    qrCodeData: parsed,
-                  ),
-                ),
-              );
-              if (result == 'refresh') {
-                Navigator.pop(context, 'refresh');
-              }
-            }
-          } else {
-            await _showAccessDeniedDialog(message: accessDeniedMessage);
-          }
-        } else {
-          await _showDialogError('Data barang tidak ditemukan dalam respons.');
-          setState(() => _isDetecting = false);
-          await _scannerController.start();
-          return;
-        }
+      if (response.statusCode != 200) {
+        await _showDialogError('Barang atau QR tidak dikenali.');
+        return;
       }
-      else if (response.statusCode == 404) {
-        await _showDialogError('QR tidak ditemukan di sistem.');
-      } else if (response.statusCode == 403) {
-        try {
-          final errorBody = json.decode(response.body);
-          final errorMessage = errorBody['message'] ?? 'Akses ditolak';
-          await _showAccessDeniedDialog(message: errorMessage);
-        } catch (_) {
-          await _showAccessDeniedDialog();
-        }
-      } else {
-        String bodySnippet = response.body;
-        if (bodySnippet.length > 300) bodySnippet = bodySnippet.substring(0, 300) + '...';
-        await _showDialogError('Terjadi kesalahan server: ${response.statusCode}\n$bodySnippet');
+
+      final body = jsonDecode(response.body);
+      final data = body['data'];
+
+      if (data == null) {
+        await _showDialogError('Barang tidak ditemukan.');
+        return;
       }
+
+      final tipe = (data['tipe_barang'] ?? '').toString().toUpperCase();
+
+      // 🔥 VALIDASI TIPE BARANG
+      if (tipe != 'APAR' && tipe != 'HYDRANT') {
+        await _showDialogError('Barang bukan APAR atau HYDRANT.');
+        return;
+      }
+
+      // ✅ LULUS → MASUK FORM LAPORAN
+      await _showPreviewBarangDialog(data, parsed);
+
+
     } catch (e) {
-      print('[ERROR] Exception: $e');
-      await _showDialogError('Koneksi gagal: $e');
+      await _showDialogError('Terjadi kesalahan: $e');
     } finally {
-      // Restart scanner hanya jika tidak ada navigasi yang terjadi
-      if (mounted && Navigator.canPop(context)) {
-        await _scannerController.start();
-        setState(() => _isDetecting = false);
-      }
+      _isDetecting = false;
+      await _scannerController.start();
     }
   }
 
-  Future<void> _showDialogError(String message) async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Peringatan'),
-          content: SingleChildScrollView(child: Text(message)),
-          actions: <Widget>[
-            TextButton(child: const Text('OK'), onPressed: () => Navigator.of(context).pop()),
-          ],
-        );
-      },
-    );
-  }
 
   Future<void> _showAccessDeniedDialog({String? message}) async {
     final defaultMessage =

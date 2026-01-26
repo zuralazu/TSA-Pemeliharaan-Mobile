@@ -1,25 +1,25 @@
 // lib/auth/onboarding_page.dart
 import 'package:flutter/material.dart';
 import 'package:tunassiakanugrah/auth/login_page.dart';
-import 'package:tunassiakanugrah/auth/register_page.dart';
 
 class OnboardingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack( // Menggunakan Stack untuk layering efek visual
+      body: Stack(
         children: [
           // Latar belakang gradient dominan biru
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topCenter, // Gradient dari atas ke bawah
+                begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFF42A5F5), Color(0xFF1976D2)], // Biru muda ke biru tua
+                colors: [Color(0xFF42A5F5), Color(0xFF1976D2)],
               ),
             ),
           ),
-          // Elemen dekoratif abstrak (opsional, bisa diganti gambar)
+
+          // Elemen dekoratif
           Positioned(
             top: -50,
             left: -50,
@@ -44,25 +44,25 @@ class OnboardingPage extends StatelessWidget {
               ),
             ),
           ),
-          // Konten utama di tengah
+
+          // Konten utama
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0), // Padding lebih besar
+            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.end, // Konten di bagian bawah
-              crossAxisAlignment: CrossAxisAlignment.center, // Rata tengah horizontal
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Area ilustrasi/logo aplikasi yang lebih besar dan menarik
+                // Logo + branding
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Ilustrasi atau logo APK Tracker
                       Container(
                         width: 180,
                         height: 180,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9), // Latar putih semi-transparan
-                          borderRadius: BorderRadius.circular(90), // Bentuk lingkaran
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(90),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.2),
@@ -73,21 +73,21 @@ class OnboardingPage extends StatelessWidget {
                         ),
                         child: Center(
                           child: Icon(
-                            Icons.local_fire_department_outlined, // Ikon APAR yang relevan
-                            size: 100, // Ukuran ikon yang menonjol
-                            color: Colors.red.shade800, // Warna merah api yang kuat
+                            Icons.local_fire_department_outlined,
+                            size: 100,
+                            color: Colors.red.shade800,
                           ),
                         ),
                       ),
                       SizedBox(height: 30),
                       Text(
-                        'APK Tracker', // Nama aplikasi di sini
+                        'APK Tracker',
                         style: TextStyle(
-                          fontSize: 42, // Ukuran font besar
+                          fontSize: 42,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white, // Warna teks putih bersih
-                          letterSpacing: 1.5, // Sedikit jarak antar huruf
-                          shadows: [ // Efek bayangan pada teks
+                          color: Colors.white,
+                          letterSpacing: 1.5,
+                          shadows: [
                             Shadow(
                               blurRadius: 8.0,
                               color: Colors.black.withOpacity(0.3),
@@ -99,7 +99,7 @@ class OnboardingPage extends StatelessWidget {
                       ),
                       SizedBox(height: 10),
                       Text(
-                        'Solusi Pemantauan Alat Proteksi Kebakaran Terintegrasi', // Slogan/deskripsi singkat
+                        'Solusi Pemantauan Alat Proteksi Kebakaran Terintegrasi',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white.withOpacity(0.8),
@@ -110,54 +110,44 @@ class OnboardingPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                SizedBox(height: 60), // Jarak ke tombol
 
-                // Tombol Login (lebih premium)
+                SizedBox(height: 60),
+
+                // Tombol Login (single action, fokus)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/login');
+                      Navigator.pushReplacementNamed(context, '/login');
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      padding: const EdgeInsets.symmetric(vertical: 20),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30), // Sudut sangat membulat
+                        borderRadius: BorderRadius.circular(35),
                       ),
-                      backgroundColor: Colors.white, // Warna tombol putih
-                      elevation: 8, // Bayangan lebih jelas
-                      shadowColor: Colors.black.withOpacity(0.3),
+                      backgroundColor: Colors.white,
+                      elevation: 10,
+                      shadowColor: Colors.black.withOpacity(0.35),
                     ),
-                    child: Text(
-                      'Login',
-                      style: TextStyle(fontSize: 20, color: Colors.blue.shade700, fontWeight: FontWeight.bold), // Teks biru kuat
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.login, color: Colors.blue.shade700),
+                        SizedBox(width: 10),
+                        Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                SizedBox(height: 15),
 
-                // Tombol Register (lebih premium)
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, '/register');
-                    },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      side: BorderSide(color: Colors.white, width: 2), // Border putih yang jelas
-                      backgroundColor: Colors.transparent, // Latar belakang transparan
-                      elevation: 0, // Tanpa bayangan
-                    ),
-                    child: Text(
-                      'Daftar Akun Baru', // Teks yang lebih spesifik
-                      style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
+                SizedBox(height: 30),
               ],
             ),
           ),

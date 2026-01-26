@@ -23,12 +23,18 @@ class _DasborHalamanState extends State<DasborHalaman> {
   bool _loadingUser = true;
   bool _loadingRingkasan = true;
   bool _adaNotifBaru = false;
+  List<String> _jenisAlat = [];
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    _fetchRingkasanData();
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    await _loadUserData();
+    await _fetchRingkasanData();
   }
 
   Future<void> _loadUserData() async {
@@ -40,7 +46,6 @@ class _DasborHalamanState extends State<DasborHalaman> {
         _loadingUser = false;
       });
     } else {
-      // jika tidak ada user, arahkan ke login
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
     }
   }
@@ -49,16 +54,12 @@ class _DasborHalamanState extends State<DasborHalaman> {
     if (!mounted) return;
     setState(() => _loadingRingkasan = true);
 
-    // Pastikan Anda menggunakan URL yang benar untuk server lokal
     final url = Uri.parse('http://10.0.2.2:8000/api/barang/ringkasan');
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-
-      // 💡 PERBAIKI: Ganti kunci dari 'auth_token' menjadi 'access_token'
       String? token = prefs.getString('access_token');
 
-      // Tambahkan log untuk debugging token
       print("Menggunakan token: $token");
 
       if (token == null) {
@@ -71,7 +72,6 @@ class _DasborHalamanState extends State<DasborHalaman> {
         url,
         headers: {
           'Content-Type': 'application/json',
-          // Kirim token yang sudah pasti ada
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
         },
@@ -84,6 +84,20 @@ class _DasborHalamanState extends State<DasborHalaman> {
         if (!mounted) return;
         setState(() {
           _ringkasanData = data;
+
+          _jenisAlat.clear();
+
+          if (data['apar'] != null && data['apar']['total'] > 0) {
+            _jenisAlat.add('APAR');
+          }
+          if (data['hydrant'] != null && data['hydrant']['total'] > 0) {
+            _jenisAlat.add('HYDRANT');
+          }
+
+          if (_dropdownTerpilih == null && _jenisAlat.isNotEmpty) {
+            _dropdownTerpilih = _jenisAlat.first;
+          }
+
           _loadingRingkasan = false;
         });
       } else {
@@ -98,40 +112,71 @@ class _DasborHalamanState extends State<DasborHalaman> {
     }
   }
 
-
   Widget _bangunKartuStatusKecil(String judul, String nilai, Color startColor, Color endColor, IconData icon) {
     return Flexible(
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        child: Container(
-          height: 60,
-          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [startColor.withOpacity(0.8), endColor],
-            ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [startColor, endColor],
           ),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  judul,
-                  style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500),
-                  overflow: TextOverflow.ellipsis,
-                ),
+          boxShadow: [
+            BoxShadow(
+              color: startColor.withOpacity(0.3),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {},
+            child: Container(
+              height: 80,
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(icon, size: 18, color: Colors.white),
+                      ),
+                      Text(
+                        nilai,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    judul,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.95),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              Text(
-                nilai,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -140,37 +185,66 @@ class _DasborHalamanState extends State<DasborHalaman> {
 
   Widget _bangunKartuStatusBaru(String judul, String nilai, MaterialColor color, MaterialColor endColor, IconData icon) {
     return Expanded(
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: EdgeInsets.symmetric(horizontal: 4),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [color.shade100, endColor.shade400],
-            ),
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color.shade400, endColor.shade600],
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 28, color: Colors.white.withOpacity(0.8)),
-              SizedBox(height: 8),
-              Text(
-                judul,
-                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.bold),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.4),
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {},
+            child: Container(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, size: 28, color: Colors.white),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    judul,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    nilai,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 4),
-              Text(
-                nilai,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -179,11 +253,13 @@ class _DasborHalamanState extends State<DasborHalaman> {
 
   Widget _buildRingkasanTotal() {
     if (_loadingRingkasan) {
-      return const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(),
-        ],
+      return Center(
+        child: Container(
+          padding: EdgeInsets.all(20),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+          ),
+        ),
       );
     }
 
@@ -191,25 +267,25 @@ class _DasborHalamanState extends State<DasborHalaman> {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _bangunKartuStatusBaru(
-            'Total Alat',
-            _ringkasanData['total']?.toString() ?? '0',
-            Colors.deepPurple,
-            Colors.purple,
-            Icons.storage
+          'Total Alat',
+          _ringkasanData['total']?.toString() ?? '0',
+          Colors.deepPurple,
+          Colors.purple,
+          Icons.storage,
         ),
         _bangunKartuStatusBaru(
-            'Kondisi Baik',
-            _ringkasanData['baik']?.toString() ?? '0',
-            Colors.lightGreen,
-            Colors.green,
-            Icons.check_circle_outline
+          'Kondisi Baik',
+          _ringkasanData['baik']?.toString() ?? '0',
+          Colors.lightGreen,
+          Colors.green,
+          Icons.check_circle_outline,
         ),
         _bangunKartuStatusBaru(
-            'Perlu Perhatian',
-            _ringkasanData['perlu_cek']?.toString() ?? '0',
-            Colors.deepOrange,
-            Colors.orange,
-            Icons.warning_amber
+          'Perlu Perhatian',
+          _ringkasanData['perlu_cek']?.toString() ?? '0',
+          Colors.deepOrange,
+          Colors.orange,
+          Icons.warning_amber,
         ),
       ],
     );
@@ -233,9 +309,9 @@ class _DasborHalamanState extends State<DasborHalaman> {
       children: [
         Row(
           children: [
-            _bangunKartuStatusKecil('Total', total, Colors.red.shade300, Colors.red, Icons.fire_extinguisher),
-            _bangunKartuStatusKecil('Baik', baik, Colors.green.shade300, Colors.green, Icons.check_circle),
-            _bangunKartuStatusKecil('Perlu Cek', perluCek, Colors.orange.shade300, Colors.orange, Icons.warning_amber),
+            _bangunKartuStatusKecil('Total', total, Colors.red.shade400, Colors.red.shade700, Icons.fire_extinguisher),
+            _bangunKartuStatusKecil('Baik', baik, Colors.green.shade400, Colors.green.shade700, Icons.check_circle),
+            _bangunKartuStatusKecil('Perlu Cek', perluCek, Colors.orange.shade400, Colors.orange.shade700, Icons.warning_amber),
           ],
         ),
       ],
@@ -246,176 +322,429 @@ class _DasborHalamanState extends State<DasborHalaman> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Material(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(15),
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(15),
-            child: Container(
-              width: 60,
-              height: 60,
-              alignment: Alignment.center,
-              child: Icon(ikon, size: 30, color: color.shade800),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [color.shade300, color.shade600],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              onTap: onPressed,
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                width: 70,
+                height: 70,
+                alignment: Alignment.center,
+                child: Icon(ikon, size: 32, color: Colors.white),
+              ),
             ),
           ),
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 10),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Colors.grey[700], fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[800],
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
-  // Method untuk mendapatkan nama role yang lebih user-friendly
   String _getRoleName(String role) {
-    switch (role) {
-      case 'staff_gudang':
-        return 'Staff Gudang';
-      case 'supervisor_umum':
-        return 'Supervisor Umum';
-      case 'inspektor':
-        return 'Inspektor';
-      default:
-        return 'Pengguna';
-    }
+    return 'Inspektor';
   }
 
   @override
   Widget build(BuildContext context) {
-    // loading user
     if (_loadingUser) {
       return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      appBar: _indeksTerpilih == 4
+      backgroundColor: Colors.grey[50],
+      appBar: _indeksTerpilih == 4 || _indeksTerpilih == 1
           ? null
           : AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('APK Tracker'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        title: Text(
+          'APK Tracker',
+          style: TextStyle(
+            color: Colors.blue.shade800,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
         actions: [
           Stack(
             children: [
-              IconButton(
-                icon: Icon(Icons.notifications, color: Colors.blue.shade800, size: 28),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/notifikasi').then((_) {
-                    // setelah buka halaman notif, tandai semua notif sebagai dibaca
-                    setState(() {
-                      _adaNotifBaru = false;
+              Container(
+                margin: EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.notifications_outlined, color: Colors.blue.shade800, size: 26),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/notifikasi').then((_) {
+                      setState(() {
+                        _adaNotifBaru = false;
+                      });
                     });
-                  });
-                },
+                  },
+                ),
               ),
-              if (_adaNotifBaru) // <-- kalau ada notif baru
+              if (_adaNotifBaru)
                 Positioned(
-                  right: 10,
-                  top: 10,
+                  right: 14,
+                  top: 14,
                   child: Container(
-                    padding: EdgeInsets.all(5),
+                    width: 10,
+                    height: 10,
                     decoration: BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
                   ),
                 ),
             ],
           ),
         ],
-
       ),
       body: _indeksTerpilih == 0
           ? RefreshIndicator(
+        color: Colors.blue.shade600,
         onRefresh: _fetchRingkasanData,
         child: SingleChildScrollView(
           physics: AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                  'Selamat Datang, ${_currentUser?.username ?? "Pengguna"}!',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue.shade800)
+              // Header Section dengan Gradient
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.blue.shade700, Colors.blue.shade900],
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Selamat Datang,',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withOpacity(0.9),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '${_currentUser?.username ?? "Pengguna"}!',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${_getRoleName(_currentUser?.role ?? '')}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Text(
-                  '${_getRoleName(_currentUser?.role ?? '')}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600], fontStyle: FontStyle.italic)
-              ),
-              SizedBox(height: 10),
-              Text('Ringkasan Status Alat:', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-              SizedBox(height: 25),
-              _buildRingkasanTotal(),
-              SizedBox(height: 30),
 
-              // Tampilkan ringkasan jenis alat hanya untuk staff_gudang
-              if (_currentUser?.role == 'staff_gudang') ...[
-                Text(
-                    'Ringkasan Berdasarkan Jenis Alat:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])
-                ),
-                SizedBox(height: 10),
-                DropdownButton<String>(
-                  value: _dropdownTerpilih,
-                  hint: Text('Pilih Jenis Alat'),
-                  isExpanded: true,
-                  items: ['APAR', 'HYDRANT'].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _dropdownTerpilih = value;
-                    });
-                  },
-                ),
-                SizedBox(height: 10),
-                if (_dropdownTerpilih != null) _buildRingkasanJenisAlat(),
-                SizedBox(height: 30),
-              ],
+              // Content Section
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade600,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Ringkasan Status Alat',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    _buildRingkasanTotal(),
+                    SizedBox(height: 30),
 
-              Text('Aksi Cepat:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _bangunTombolAksiCepatBaru(Icons.report_problem_outlined, 'Rusak &\nExpired', () {}, Colors.red),
-                  _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {}, Colors.blueGrey),
-                  _bangunTombolAksiCepatBaru(Icons.menu_book, 'Modul', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
-                  }, Colors.teal),
-                  _bangunTombolAksiCepatBaru(Icons.qr_code_scanner, 'Scan QR', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
-                  }, Colors.indigo),
-                ],
-              ),
-              SizedBox(height: 30),
-              Text('Berita Terkini:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
-              SizedBox(height: 10),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: ListTile(
-                  leading: Icon(Icons.campaign, color: Colors.blueAccent),
-                  title: Text('Pengecekan rutin akan dilakukan minggu ini'),
-                  subtitle: Text('Jadwal lengkap pengecekan akan diumumkan oleh supervisor.'),
-                ),
-              ),
-              SizedBox(height: 10),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: ListTile(
-                  leading: Icon(Icons.newspaper, color: Colors.green),
-                  title: Text('Perubahan SOP penggunaan APAR'),
-                  subtitle: Text('Mulai bulan depan akan ada pelatihan khusus penggunaan alat.'),
+                    if (_jenisAlat.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade600,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Berdasarkan Jenis Alat',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: Colors.white,
+                          border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _dropdownTerpilih,
+                            isExpanded: true,
+                            hint: Text(
+                              'Pilih Jenis Alat',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                            icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.blue.shade600),
+                            items: _jenisAlat.map((value) {
+                              return DropdownMenuItem(
+                                value: value,
+                                child: Text(
+                                  value,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[800],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _dropdownTerpilih = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      if (_dropdownTerpilih != null) _buildRingkasanJenisAlat(),
+                      SizedBox(height: 30),
+                    ],
+
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade600,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Aksi Cepat',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {}, Colors.blueGrey),
+                        _bangunTombolAksiCepatBaru(Icons.menu_book_rounded, 'Modul', () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
+                        }, Colors.teal),
+                        _bangunTombolAksiCepatBaru(Icons.qr_code_scanner_rounded, 'Scan QR', () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => QrCodeHalaman()));
+                        }, Colors.indigo),
+                      ],
+                    ),
+                    SizedBox(height: 30),
+
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade600,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Berita Terkini',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.all(16),
+                        leading: Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.campaign_rounded, color: Colors.blueAccent, size: 26),
+                        ),
+                        title: Text(
+                          'Pengecekan rutin akan dilakukan minggu ini',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            'Jadwal lengkap pengecekan akan diumumkan oleh supervisor.',
+                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.all(16),
+                        leading: Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.article_rounded, color: Colors.green, size: 26),
+                        ),
+                        title: Text(
+                          'Perubahan SOP penggunaan APAR',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            'Mulai bulan depan akan ada pelatihan khusus penggunaan alat.',
+                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                  ],
                 ),
               ),
             ],
@@ -427,38 +756,53 @@ class _DasborHalamanState extends State<DasborHalaman> {
           : _indeksTerpilih == 4
           ? KelolaAkunPage()
           : Center(child: Text('Halaman belum tersedia')),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
-          BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
-          BottomNavigationBarItem(icon: Icon(Icons.apps), label: 'Modul'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-        ],
-        currentIndex: _indeksTerpilih,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) async {
-          if (index == 2) {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => QrCodeHalaman()),
-            );
-            if (result == 'refresh') {
-              await _fetchRingkasanData();
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Beranda'),
+            BottomNavigationBarItem(icon: Icon(Icons.inventory_2_rounded), label: 'Inventory'),
+            BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner_rounded), label: 'Scan'),
+            BottomNavigationBarItem(icon: Icon(Icons.apps_rounded), label: 'Modul'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profil'),
+          ],
+          currentIndex: _indeksTerpilih,
+          selectedItemColor: Colors.blue.shade700,
+          unselectedItemColor: Colors.grey.shade400,
+          selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          unselectedLabelStyle: TextStyle(fontSize: 11),
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          elevation: 0,
+          onTap: (index) async {
+            if (index == 2) {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => QrCodeHalaman()),
+              );
+              if (result == 'refresh') {
+                await _fetchRingkasanData();
+                setState(() {
+                  _indeksTerpilih = 0;
+                });
+              }
+            } else if (index == 3) {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
+            } else {
               setState(() {
-                _indeksTerpilih = 0;
+                _indeksTerpilih = index;
               });
             }
-          } else if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
-          } else {
-            setState(() {
-              _indeksTerpilih = index;
-            });
-          }
-        },
-        type: BottomNavigationBarType.fixed,
+          },
+        ),
       ),
     );
   }

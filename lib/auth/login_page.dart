@@ -118,6 +118,15 @@ class _LoginPageState extends State<LoginPage> {
             backgroundColor: Colors.red,
           ),
         );
+      } else if (response.statusCode == 403) {
+        final Map<String, dynamic> errorData = json.decode(response.body);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData['message'] ?? 'Akses ditolak'),
+            backgroundColor: Colors.red,
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

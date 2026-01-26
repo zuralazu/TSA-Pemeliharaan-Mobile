@@ -37,13 +37,31 @@ class _KelolaAkunPageState extends State<KelolaAkunPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Keluar Aplikasi"),
-        content: const Text("Apakah kamu yakin ingin logout?"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Text("Keluar Aplikasi"),
+          ],
+        ),
+        content: const Text(
+          "Apakah kamu yakin ingin logout?",
+          style: TextStyle(fontSize: 16),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Batal")),
           TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Batal", style: TextStyle(color: Colors.grey, fontSize: 16)),
+          ),
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Logout", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text("Logout", style: TextStyle(fontSize: 16)),
           ),
         ],
       ),
@@ -58,27 +76,10 @@ class _KelolaAkunPageState extends State<KelolaAkunPage> {
     }
   }
 
-  void _showInformasiPerusahaan() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Tentang Perusahaan"),
-        content: const Text(
-          "PT Tunas Siak Anugrah adalah perusahaan yang bergerak di bidang keselamatan kebakaran, penyedia alat proteksi kebakaran (APAR, hydrant, sprinkler, dan lain-lain), serta layanan pemeliharaan dan inspeksi.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Tutup"),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text(
@@ -86,56 +87,224 @@ class _KelolaAkunPageState extends State<KelolaAkunPage> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black87,
+            fontSize: 22,
           ),
         ),
         backgroundColor: Colors.white,
-        elevation: 1,
+        elevation: 0,
+        centerTitle: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      body: SingleChildScrollView(
         child: Column(
           children: [
-            const CircleAvatar(
-              radius: 50,
-              backgroundImage: AssetImage('assets/images/avatar_default.png'),
+            // Header Section with Gradient
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.blue.shade600,
+                    Colors.blue.shade400,
+                  ],
+                ),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                child: Column(
+                  children: [
+                    // Avatar with shadow
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 55,
+                        backgroundColor: Colors.white,
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundImage: const AssetImage('assets/images/avatar_default.png'),
+                          backgroundColor: Colors.grey[200],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      _username,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _email,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
-            Text(_username, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(_email, style: const TextStyle(color: Colors.grey)),
-            const SizedBox(height: 30),
 
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Ubah Akun'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const UbahAkunPage()),
-                ).then((_) => _loadUserData());
-              },
-            ),
+            const SizedBox(height: 20),
 
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('Tentang Perusahaan'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const InformasiPerusahaanPage()),
-                );
-              },
-            ),
+            // Menu Cards Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  // Account Settings Card
+                  _buildMenuCard(
+                    icon: Icons.edit_outlined,
+                    iconColor: Colors.blue,
+                    title: 'Ubah Akun',
+                    subtitle: 'Perbarui informasi profil',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const UbahAkunPage()),
+                      ).then((_) => _loadUserData());
+                    },
+                  ),
 
+                  const SizedBox(height: 12),
 
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Logout', style: TextStyle(color: Colors.red)),
-              onTap: () => _logout(context),
+                  // Company Info Card
+                  _buildMenuCard(
+                    icon: Icons.business_outlined,
+                    iconColor: Colors.orange,
+                    title: 'Tentang Perusahaan',
+                    subtitle: 'Informasi PT Tunas Siak Anugrah',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const InformasiPerusahaanPage()),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Logout Card
+                  _buildMenuCard(
+                    icon: Icons.logout_outlined,
+                    iconColor: Colors.red,
+                    title: 'Logout',
+                    subtitle: 'Keluar dari aplikasi',
+                    onTap: () => _logout(context),
+                    isDestructive: true,
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // App Version Info
+                  Text(
+                    'Versi Aplikasi 1.0.0',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200, width: 1),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Icon Container
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Text Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDestructive ? Colors.red : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDestructive ? Colors.red[300] : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Arrow Icon
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: isDestructive ? Colors.red[300] : Colors.grey[400],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -51,8 +51,13 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  String? _lokasiAwalAlat;
 
   final List<String> _daftarLokasi = ['LANTAI-1', 'LANTAI-2', 'LANTAI-3', 'LANTAI-4'];
+
+  Map<String, dynamic>? _lastInspection;
+  bool _isLoadingInspection = true;
+
 
   String _detectTipeBarang() {
     final upperId = widget.idAlat.toUpperCase();
@@ -69,9 +74,31 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
     return 'UNKNOWN';
   }
 
+  String _inspectionAge(String tanggal) {
+    final last = DateTime.parse(tanggal);
+    final diff = DateTime.now().difference(last).inDays;
+    return '$diff hari lalu';
+  }
+
+  String _buildFotoUrl(String foto) {
+    if (foto.startsWith('http')) {
+      return foto;
+    }
+
+    if (foto.startsWith('storage/')) {
+      return 'http://10.0.2.2:8000/$foto';
+    }
+
+    return 'http://10.0.2.2:8000/storage/$foto';
+  }
+
+
+
   @override
   void initState() {
     super.initState();
+    _lokasiAwalAlat = widget.lokasiAlat;
+
     _animationController = AnimationController(
       duration: Duration(milliseconds: 800),
       vsync: this,
@@ -93,6 +120,9 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
     } else {
       _animationController.forward();
     }
+
+    _fetchLastInspection();
+
   }
 
   @override
@@ -235,7 +265,11 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
       if (response.statusCode == 201) {
         final data = json.decode(respStr);
         _showSnackBar(data['message'] ?? 'Laporan berhasil dikirim.', Colors.green);
-        Navigator.pop(context, 'refresh');
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/dashboard',
+              (route) => false,
+        );
       } else {
         final data = json.decode(respStr);
         _showSnackBar(data['message'] ?? 'Gagal mengirim laporan.', Colors.red);
@@ -246,6 +280,52 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
 
     setState(() => _isLoading = false);
   }
+
+  Future<void> _fetchLastInspection() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('access_token');
+
+    if (token == null) {
+      return;
+    }
+
+    final response = await http.get(
+      Uri.parse(
+        'http://10.0.2.2:8000/api/laporan-apk/terakhir/${widget.qrCodeData}',
+      ),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      final data = jsonData['data'];
+
+      if (data != null) {
+        setState(() {
+          _lastInspection = data;
+
+          _kondisiFisikTerpilih = data['kondisi_fisik'];
+          _tindakanTerpilih = data['tindakan'];
+          _catatanTindakanController.text = data['catatan_tindakan'] ?? '';
+
+          _selangTerpilih = data['selang'];
+          _pressureGaugeTerpilih = data['pressure_gauge'];
+          _safetyPinTerpilih = data['safety_pin'];
+
+          if (data['lokasi_alat'] != null) {
+            _lokasiAwalAlat = data['lokasi_alat'];
+          }
+        });
+
+      }
+    }
+
+    setState(() => _isLoadingInspection = false);
+  }
+
 
   void _showSnackBar(String pesan, Color warna) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -346,7 +426,7 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
               ),
             ],
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 12),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -411,7 +491,7 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
             );
           }).toList(),
         ),
-        SizedBox(height: 16),
+        SizedBox(height: 12),
       ],
     );
   }
@@ -515,6 +595,24 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_lastInspection != null)
+                Container(
+                  margin: EdgeInsets.only(top: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[100],
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Inspeksi terakhir: ${_inspectionAge(_lastInspection!['tanggal_inspeksi'])}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.orange[800],
+                    ),
+                  ),
+                ),
+              SizedBox(height: 12),
               // Card Info
               Container(
                 padding: EdgeInsets.all(20),
@@ -536,13 +634,12 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
                   children: [
                     _buildInfoRow('Nama', widget.namaAlat),
                     _buildInfoRow('Tipe', detectedType),
-                    _buildInfoRow('Lokasi', widget.lokasiAlat),
+                    _buildInfoRow('Lokasi', _lokasiAwalAlat ?? '-'),
                     _buildInfoRow('QR Code', widget.qrCodeData),
-                    _buildInfoRow('ID', widget.idAlat),
                   ],
                 ),
               ),
-              SizedBox(height: 24),
+              SizedBox(height: 12),
 
               _buildInputField(
                 'Tanggal Inspeksi',
@@ -575,12 +672,69 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
                 Icons.camera_alt,
                 Column(
                   children: [
+                    // 1️⃣ FOTO BARU (PRIORITAS)
                     if (_imageFile != null)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.file(_imageFile!,
-                            height: 200, width: double.infinity, fit: BoxFit.cover),
+                        child: Image.file(
+                          _imageFile!,
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+
+                    // 2️⃣ FOTO DARI INSPEKSI TERAKHIR
+                    else if (
+                    _lastInspection != null &&
+                        _lastInspection!['foto'] != null &&
+                        _lastInspection!['foto'].toString().isNotEmpty
+                    )
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          _buildFotoUrl(_lastInspection!['foto']),
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 200,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Foto tidak dapat ditampilkan',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      )
+
+
+                    // 3️⃣ BELUM ADA FOTO SAMA SEKALI
+                    else
+                      Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Belum ada foto',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ),
                       ),
+
+
                     SizedBox(height: 12),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 0), // biar nggak mepet
