@@ -1,3 +1,4 @@
+import 'dart:io'; // ⬅️ WAJIB
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tunassiakanugrah/auth/login_page.dart';
@@ -5,8 +6,22 @@ import 'package:tunassiakanugrah/auth/register_page.dart';
 import 'package:tunassiakanugrah/utama/dasbor_halaman.dart';
 import 'package:tunassiakanugrah/auth/onboarding_page.dart';
 import 'package:tunassiakanugrah/utama/notifikasi_page.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+/// ⚠️ DEV ONLY SSL BYPASS
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
+Future<void> main() async {
+  HttpOverrides.global = MyHttpOverrides();
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   runApp(const AplikasiSaya());
 }
 
@@ -18,29 +33,21 @@ class AplikasiSaya extends StatelessWidget {
     String? userData = prefs.getString('user_data');
     int? loginTime = prefs.getInt('login_timestamp');
 
-    print('🔥 userData: $userData');
-    print('🔥 loginTime: $loginTime');
-
     if (userData != null && loginTime != null) {
       final now = DateTime.now().millisecondsSinceEpoch;
       final selisih = now - loginTime;
 
-      print('🔥 selisih waktu login: ${selisih / 1000} detik');
-
       const batasWaktu = 15 * 60 * 1000; // 15 menit
 
       if (selisih <= batasWaktu) {
-        print('✅ Sesi aktif. Masuk ke dashboard');
         return DasborHalaman();
       } else {
-        print('❌ Sesi habis. Logout dan kembali ke onboarding');
         await prefs.remove('user_data');
         await prefs.remove('access_token');
         await prefs.remove('login_timestamp');
         return OnboardingPage();
       }
     } else {
-      print('❌ Tidak ada data login. Masuk onboarding');
       return OnboardingPage();
     }
   }
@@ -55,7 +62,9 @@ class AplikasiSaya extends StatelessWidget {
         future: _cekLoginStatus(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           } else {
             return snapshot.data ?? OnboardingPage();
           }

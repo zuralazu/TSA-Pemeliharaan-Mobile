@@ -10,7 +10,7 @@ class ModulDetailHalaman extends StatelessWidget {
     required this.modulTitle,
   }) : super(key: key);
 
-  final Map<String, List<String>> sopData = const {
+  static const Map<String, List<String>> sopData = {
     'sop_apar': [
       'Periksa kondisi tabung: tidak ada karat, penyok, atau kebocoran.',
       'Periksa selang dan nozzle: tidak retak, tersumbat, atau rusak.',
@@ -34,72 +34,195 @@ class ModulDetailHalaman extends StatelessWidget {
     ],
   };
 
+  // Warna aksen berbeda tergantung jenis modul, biar user gampang bedain
+  // APAR vs Hydrant secara visual.
+  Color get _accentColor {
+    switch (modulType) {
+      case 'sop_apar':
+        return const Color(0xFFE04B3E); // merah - identik dgn APAR
+      case 'sop_fire_hydrant':
+        return const Color(0xFF1E6FBF); // biru - identik dgn hydrant/air
+      default:
+        return const Color(0xFF64748B);
+    }
+  }
+
+  IconData get _headerIcon {
+    switch (modulType) {
+      case 'sop_apar':
+        return Icons.local_fire_department_rounded;
+      case 'sop_fire_hydrant':
+        return Icons.water_drop_rounded;
+      default:
+        return Icons.menu_book_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<String> sopList = sopData[modulType] ?? ['Modul tidak ditemukan.'];
+    final List<String> sopList =
+        sopData[modulType] ?? ['Modul tidak ditemukan.'];
+    final accent = _accentColor;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        title: Text(modulTitle),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-        elevation: 4,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.blue.shade50, Colors.blue.shade200],
-          ),
+        title: Text(
+          modulTitle,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
         ),
-        child: ListView(
-          padding: const EdgeInsets.all(20.0),
-          children: [
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.menu_book_rounded, color: Colors.blue.shade800),
-                        SizedBox(width: 10),
-                        Text(
-                          modulTitle,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade800,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    for (int i = 0; i < sopList.length; i++)
-                      ListTile(
-                        leading: CircleAvatar(
-                          radius: 15,
-                          backgroundColor: Colors.blue.shade100,
-                          child: Text(
-                            '${i + 1}',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700),
-                          ),
-                        ),
-                        title: Text(
-                          sopList[i],
-                          style: const TextStyle(fontSize: 16, height: 1.4),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1E293B),
+        elevation: 0,
+        centerTitle: false,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: const Color(0xFFE2E8F0), height: 1),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          // ---------- Header info card ----------
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withOpacity(0.25),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(_headerIcon, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        modulTitle,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'SOP Pemeliharaan • ${sopList.length} langkah',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          Text(
+            'LANGKAH PEMELIHARAAN',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: Colors.grey.shade500,
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // ---------- Step list (timeline style) ----------
+          for (int i = 0; i < sopList.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE9ECF2)),
+                ),
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${i + 1}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: accent,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: Text(
+                          sopList[i],
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            height: 1.45,
+                            color: Color(0xFF334155),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ],
-        ),
+
+          const SizedBox(height: 8),
+
+          // ---------- Footer note ----------
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7E6),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFCE7A5)),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.info_outline_rounded,
+                    size: 18, color: Color(0xFFB7791F)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Pastikan setiap langkah dicentang dan didokumentasikan saat inspeksi lapangan.',
+                    style: TextStyle(fontSize: 12.5, color: Color(0xFF7A5B12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

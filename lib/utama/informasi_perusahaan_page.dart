@@ -393,7 +393,7 @@ class InformasiPerusahaanPage extends StatelessWidget {
               color: Colors.green,
               items: [
                 'Barang besar dan kecil',
-                'Racking warehouse, gudang, supermarket & minimarket',
+                'Racking warehouse, gudang',
                 'Alat proteksi kebakaran & peralatan keselamatan kerja',
               ],
             ),

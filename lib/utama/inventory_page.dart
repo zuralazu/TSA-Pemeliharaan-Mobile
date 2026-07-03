@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../model/barang.dart';
+import '../model/inventory_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tunassiakanugrah/auth/login_page.dart';
 import 'inventory_detail_page.dart';
+import 'package:tunassiakanugrah/config/env.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -14,8 +15,9 @@ class InventoryPage extends StatefulWidget {
 }
 
 class _InventoryPageState extends State<InventoryPage> {
-  List<Barang> _barangs = [];
-  List<Barang> _filteredBarangs = [];
+  List<InventoryItem> _items = [];
+  List<InventoryItem> _filteredItems = [];
+
   bool _isLoading = true;
 
   TextEditingController _searchController = TextEditingController();
@@ -44,7 +46,7 @@ class _InventoryPageState extends State<InventoryPage> {
     }
 
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8000/api/barangs'),
+      Uri.parse('${Env.baseUrl}/api/barangs'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
@@ -55,8 +57,8 @@ class _InventoryPageState extends State<InventoryPage> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body)['data'];
         setState(() {
-          _barangs = data.map((item) => Barang.fromJson(item)).toList();
-          _filteredBarangs = _barangs;
+          _items = data.map((item) => InventoryItem.fromJson(item)).toList();
+          _filteredItems = _items;
           _isLoading = false;
         });
       } else if (response.statusCode == 401) {
@@ -75,9 +77,11 @@ class _InventoryPageState extends State<InventoryPage> {
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredBarangs = _barangs.where((barang) {
-        return barang.nama.toLowerCase().contains(query);
+      _filteredItems = _items.where((item) {
+        return item.namaBarang.toLowerCase().contains(query) ||
+            item.nomorIdentifikasi.toLowerCase().contains(query);
       }).toList();
+
     });
   }
 
@@ -103,27 +107,24 @@ class _InventoryPageState extends State<InventoryPage> {
 
   IconData _getTipeIcon(String tipe) {
     switch (tipe.toLowerCase()) {
-      case 'elektronik':
-        return Icons.devices;
-      case 'furniture':
-        return Icons.chair;
-      case 'alat tulis':
-        return Icons.edit;
-      case 'kendaraan':
-        return Icons.directions_car;
+      case 'apar':
+        return Icons.fire_extinguisher;
+      case 'hydrant':
+        return Icons.water_damage;
       default:
         return Icons.inventory_2;
     }
   }
 
-  Widget _buildItemCard(Barang barang) {
+
+  Widget _buildItemCard(InventoryItem item) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => InventoryDetailPage(
-              idBarang: barang.id,
+              nomorIdentifikasi: item.nomorIdentifikasi, // QR STRING
             ),
           ),
         );
@@ -153,7 +154,7 @@ class _InventoryPageState extends State<InventoryPage> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => InventoryDetailPage(
-                    idBarang: barang.id,
+                    nomorIdentifikasi: item.nomorIdentifikasi, // QR STRING
                   ),
                 ),
               );
@@ -186,7 +187,7 @@ class _InventoryPageState extends State<InventoryPage> {
                       ],
                     ),
                     child: Icon(
-                      _getTipeIcon(barang.tipe),
+                      _getTipeIcon(item.tipeKategori),
                       color: Colors.white,
                       size: 32,
                     ),
@@ -198,7 +199,7 @@ class _InventoryPageState extends State<InventoryPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          barang.nama,
+                          item.namaBarang,
                           style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
@@ -218,7 +219,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                barang.tipe,
+                                item.tipeKategori,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -241,7 +242,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                       size: 14, color: Colors.grey[700]),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${barang.jumlah}',
+                                    '1',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -253,7 +254,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             ),
                           ],
                         ),
-                        if (barang.kondisi != null) ...[
+                        if (item.kondisi != null)...[
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -261,17 +262,17 @@ class _InventoryPageState extends State<InventoryPage> {
                                 width: 8,
                                 height: 8,
                                 decoration: BoxDecoration(
-                                  color: _getKondisiColor(barang.kondisi),
+                                  color: _getKondisiColor(item.kondisi),
                                   shape: BoxShape.circle,
                                 ),
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                barang.kondisi!,
+                                item.kondisi!,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: _getKondisiColor(barang.kondisi),
+                                  color: _getKondisiColor(item.kondisi),
                                 ),
                               ),
                             ],
@@ -415,7 +416,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         child: Column(
                           children: [
                             Text(
-                              '${_barangs.length}',
+                              '${_items.length}',
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -485,7 +486,7 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
             // List Section
             Expanded(
-              child: _filteredBarangs.isEmpty
+              child: _filteredItems.isEmpty
                   ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -531,9 +532,9 @@ class _InventoryPageState extends State<InventoryPage> {
                 color: const Color(0xFF1976D2),
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: _filteredBarangs.length,
+                    itemCount: _filteredItems.length,
                   itemBuilder: (context, index) {
-                    return _buildItemCard(_filteredBarangs[index]);
+                    return _buildItemCard(_filteredItems[index]);
                   },
                 ),
               ),

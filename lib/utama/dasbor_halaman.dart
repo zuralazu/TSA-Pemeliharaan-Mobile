@@ -9,16 +9,23 @@ import 'package:tunassiakanugrah/pemeliharaan/modul_halaman.dart';
 import 'package:tunassiakanugrah/pemeliharaan/qr_code.dart';
 import 'package:tunassiakanugrah/utama/kelola_akun_page.dart';
 import 'package:tunassiakanugrah/utama/inventory_page.dart';
+import 'package:tunassiakanugrah/config/env.dart';
+import 'package:tunassiakanugrah/model/ringkasan.dart';
+import 'package:tunassiakanugrah/utama/shop_webview_halaman.dart';
 
 class DasborHalaman extends StatefulWidget {
+  final int initialIndex;
+
+  const DasborHalaman({Key? key, this.initialIndex = 0}) : super(key: key);
+
   @override
   _DasborHalamanState createState() => _DasborHalamanState();
 }
 
 class _DasborHalamanState extends State<DasborHalaman> {
-  int _indeksTerpilih = 0;
+  late int _indeksTerpilih;
   User? _currentUser;
-  Map<String, dynamic> _ringkasanData = {};
+  RingkasanDashboard? _ringkasanData;
   String? _dropdownTerpilih;
   bool _loadingUser = true;
   bool _loadingRingkasan = true;
@@ -28,13 +35,15 @@ class _DasborHalamanState extends State<DasborHalaman> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _indeksTerpilih = widget.initialIndex;
     _initData();
   }
 
   Future<void> _initData() async {
     await _loadUserData();
-    await _fetchRingkasanData();
+    if (mounted) {
+      await _fetchRingkasanData();
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -54,16 +63,13 @@ class _DasborHalamanState extends State<DasborHalaman> {
     if (!mounted) return;
     setState(() => _loadingRingkasan = true);
 
-    final url = Uri.parse('http://10.0.2.2:8000/api/barang/ringkasan');
+    final url = Uri.parse('${Env.baseUrl}/api/barang/ringkasan');
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('access_token');
 
-      print("Menggunakan token: $token");
-
       if (token == null) {
-        print("Token tidak ditemukan, mengarahkan ke login.");
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
         return;
       }
@@ -80,35 +86,43 @@ class _DasborHalamanState extends State<DasborHalaman> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (!mounted) return;
+        final decoded = jsonDecode(response.body);
+
+        final ringkasan = RingkasanDashboard.fromJson(decoded);
+
+        final List<String> jenis = [];
+
+        if (ringkasan.apar != null && ringkasan.apar!.total > 0) {
+          jenis.add('APAR');
+        }
+
+        if (ringkasan.hydrant != null && ringkasan.hydrant!.total > 0) {
+          jenis.add('HYDRANT');
+        }
+
         setState(() {
-          _ringkasanData = data;
+          _ringkasanData = ringkasan;
+          _jenisAlat = jenis;
 
-          _jenisAlat.clear();
-
-          if (data['apar'] != null && data['apar']['total'] > 0) {
-            _jenisAlat.add('APAR');
-          }
-          if (data['hydrant'] != null && data['hydrant']['total'] > 0) {
-            _jenisAlat.add('HYDRANT');
-          }
-
-          if (_dropdownTerpilih == null && _jenisAlat.isNotEmpty) {
-            _dropdownTerpilih = _jenisAlat.first;
+          if (_jenisAlat.isNotEmpty) {
+            _dropdownTerpilih ??= _jenisAlat.first;
           }
 
           _loadingRingkasan = false;
         });
+
+        // DEBUG LOG
+        print("RINGKASAN: ${response.body}");
+        print("JENIS: $_jenisAlat");
+        print("DROPDOWN: $_dropdownTerpilih");
       } else {
-        print("Gagal ambil data: ${response.statusCode}");
-        print("Response Body: ${response.body}");
         setState(() => _loadingRingkasan = false);
       }
     } catch (e) {
-      print("Terjadi error saat fetch data: $e");
-      if (!mounted) return;
-      setState(() => _loadingRingkasan = false);
+      print("ERROR RINGKASAN: $e");
+      if (mounted) {
+        setState(() => _loadingRingkasan = false);
+      }
     }
   }
 
@@ -268,21 +282,21 @@ class _DasborHalamanState extends State<DasborHalaman> {
       children: [
         _bangunKartuStatusBaru(
           'Total Alat',
-          _ringkasanData['total']?.toString() ?? '0',
+          _ringkasanData?.total.toString() ?? '0',
           Colors.deepPurple,
           Colors.purple,
           Icons.storage,
         ),
         _bangunKartuStatusBaru(
           'Kondisi Baik',
-          _ringkasanData['baik']?.toString() ?? '0',
+          _ringkasanData?.baik.toString() ?? '0',
           Colors.lightGreen,
           Colors.green,
           Icons.check_circle_outline,
         ),
         _bangunKartuStatusBaru(
           'Perlu Perhatian',
-          _ringkasanData['perlu_cek']?.toString() ?? '0',
+          _ringkasanData?.perluCek.toString() ?? '0',
           Colors.deepOrange,
           Colors.orange,
           Icons.warning_amber,
@@ -297,12 +311,19 @@ class _DasborHalamanState extends State<DasborHalaman> {
     }
     if (_dropdownTerpilih == null) return SizedBox.shrink();
 
-    final data = _ringkasanData[_dropdownTerpilih!.toLowerCase()];
+    RingkasanJenis? data;
+
+    if (_dropdownTerpilih == 'APAR') {
+      data = _ringkasanData?.apar;
+    } else if (_dropdownTerpilih == 'HYDRANT') {
+      data = _ringkasanData?.hydrant;
+    }
+
     if (data == null) return Text('Tidak ada data untuk jenis ini');
 
-    final total = data['total']?.toString() ?? '0';
-    final baik = data['baik']?.toString() ?? '0';
-    final perluCek = data['perlu_cek']?.toString() ?? '0';
+    final total = data.total.toString();
+    final baik = data.baik.toString();
+    final perluCek = data.perluCek.toString();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,6 +386,110 @@ class _DasborHalamanState extends State<DasborHalaman> {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+
+  // ---------- Kartu Berita (redesign) ----------
+  Widget _bangunKartuBerita({
+    required String kategori,
+    required Color kategoriColor,
+    required IconData icon,
+    required String judul,
+    required String ringkasan,
+    required String tanggal,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {},
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFEDF0F5)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: kategoriColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: kategoriColor, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: kategoriColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            kategori.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.4,
+                              color: kategoriColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          tanggal,
+                          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      judul,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Color(0xFF1E293B),
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ringkasan,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: Colors.grey.shade600,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 22),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -630,7 +755,14 @@ class _DasborHalamanState extends State<DasborHalaman> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {}, Colors.blueGrey),
+                        _bangunTombolAksiCepatBaru(Icons.shopping_bag_outlined, 'Shop', () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ShopWebViewHalaman(),
+                            ),
+                          );
+                        }, Colors.blueGrey),
                         _bangunTombolAksiCepatBaru(Icons.menu_book_rounded, 'Modul', () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => ModulHalaman()));
                         }, Colors.teal),
@@ -641,6 +773,7 @@ class _DasborHalamanState extends State<DasborHalaman> {
                     ),
                     SizedBox(height: 30),
 
+                    // ---------- Berita Terkini (redesign) ----------
                     Row(
                       children: [
                         Container(
@@ -664,84 +797,22 @@ class _DasborHalamanState extends State<DasborHalaman> {
                       ],
                     ),
                     SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.all(16),
-                        leading: Container(
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(Icons.campaign_rounded, color: Colors.blueAccent, size: 26),
-                        ),
-                        title: Text(
-                          'Pengecekan rutin akan dilakukan minggu ini',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            'Jadwal lengkap pengecekan akan diumumkan oleh supervisor.',
-                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                          ),
-                        ),
-                      ),
+                    _bangunKartuBerita(
+                      kategori: 'Jadwal',
+                      kategoriColor: const Color(0xFF2563EB),
+                      icon: Icons.campaign_rounded,
+                      judul: 'Pengecekan rutin akan dilakukan minggu ini',
+                      ringkasan: 'Jadwal lengkap pengecekan akan diumumkan oleh supervisor.',
+                      tanggal: '3 Jul 2026',
                     ),
                     SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.all(16),
-                        leading: Container(
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(Icons.article_rounded, color: Colors.green, size: 26),
-                        ),
-                        title: Text(
-                          'Perubahan SOP penggunaan APAR',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            'Mulai bulan depan akan ada pelatihan khusus penggunaan alat.',
-                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                          ),
-                        ),
-                      ),
+                    _bangunKartuBerita(
+                      kategori: 'SOP',
+                      kategoriColor: const Color(0xFF16A34A),
+                      icon: Icons.article_rounded,
+                      judul: 'Perubahan SOP penggunaan APAR',
+                      ringkasan: 'Mulai bulan depan akan ada pelatihan khusus penggunaan alat.',
+                      tanggal: '1 Jul 2026',
                     ),
                     SizedBox(height: 20),
                   ],

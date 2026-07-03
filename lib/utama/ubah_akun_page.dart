@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:tunassiakanugrah/config/env.dart';
 
 class UbahAkunPage extends StatefulWidget {
   const UbahAkunPage({super.key});
@@ -50,95 +51,72 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
   Future<void> _updatePassword() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_token == null || _token!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Token tidak valid, silakan login ulang')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       final response = await http.put(
-        Uri.parse('http://10.0.2.2:8000/api/user/update'),
+        Uri.parse('${Env.baseUrl}/api/user/update'),
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json', // 🔥 WAJIB
           'Authorization': 'Bearer $_token',
         },
         body: json.encode({
-          'username': _username, // Keep username same
+          // ❌ username JANGAN dikirim kalau cuma ganti password
           'password': _passwordController.text,
         }),
       );
 
-      setState(() => _isLoading = false);
-
       print('📡 Status Code: ${response.statusCode}');
       print('📡 Response Body: ${response.body}');
 
+      setState(() => _isLoading = false);
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_data', json.encode(data['user']));
 
-        // Clear form
         _passwordController.clear();
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 12),
-                  Expanded(child: Text('Password berhasil diperbarui!')),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-
-          // Kembali ke halaman sebelumnya setelah 1 detik
-          Future.delayed(const Duration(seconds: 1), () {
-            if (context.mounted) {
-              Navigator.pop(context);
-            }
-          });
-        }
-      } else {
-        final errorData = json.decode(response.body);
-        final errorMessage = errorData['message'] ?? 'Gagal memperbarui password.';
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.error, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(errorMessage)),
-                ],
-              ),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Terjadi kesalahan: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+          const SnackBar(content: Text('Password berhasil diperbarui')),
+        );
+
+        Future.delayed(const Duration(seconds: 1), () {
+          if (context.mounted) Navigator.pop(context);
+        });
+
+      } else {
+        // kalau HTML, jangan decode JSON
+        if (!response.body.startsWith('{')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Server error (bukan JSON response)')),
+          );
+          return;
+        }
+
+        final errorData = json.decode(response.body);
+        final errorMessage = errorData['message'] ?? 'Gagal memperbarui password';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
         );
       }
+
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

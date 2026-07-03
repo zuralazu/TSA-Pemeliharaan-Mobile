@@ -5,6 +5,7 @@ import 'package:tunassiakanugrah/pemeliharaan/tambah_barang_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tunassiakanugrah/config/env.dart';
 
 class QrCodeHalaman extends StatefulWidget {
   @override
@@ -46,6 +47,7 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
   Future<void> _showPreviewBarangDialog(
       Map<String, dynamic> data,
       String qrCode,
+      Map<String, dynamic> inspectionStatus,
       ) async {
     return showDialog<void>(
       context: context,
@@ -147,7 +149,7 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
                           SizedBox(height: 12),
                           _buildEnhancedDetailRow(
                             'Tipe',
-                            data['tipe_barang']?.toString() ?? '-',
+                            data['tipe_barang_kategori']?.toString() ?? '-',
                             Icons.category_rounded,
                             Colors.purple,
                           ),
@@ -159,64 +161,65 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
                             Colors.teal,
                           ),
                           SizedBox(height: 20),
-                          // Success Badge
+
                           Container(
                             padding: EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.green.shade50,
-                                  Colors.green.shade100.withOpacity(0.5),
-                                ],
-                              ),
+                              color: inspectionStatus['is_due'] == true
+                                  ? Colors.green.shade50
+                                  : Colors.orange.shade50,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: Colors.green.shade200,
+                                color: inspectionStatus['is_due'] == true
+                                    ? Colors.green.shade300
+                                    : Colors.orange.shade300,
                                 width: 1.5,
                               ),
                             ),
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.check_circle_rounded,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Validasi Berhasil',
+                                Row(
+                                  children: [
+                                    Icon(
+                                      inspectionStatus['is_due'] == true
+                                          ? Icons.check_circle_rounded
+                                          : Icons.lock_clock_rounded,
+                                      color: inspectionStatus['is_due'] == true
+                                          ? Colors.green
+                                          : Colors.orange,
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        inspectionStatus['status_text'] ?? '-',
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.green.shade900,
+                                          color: inspectionStatus['is_due'] == true
+                                              ? Colors.green.shade800
+                                              : Colors.orange.shade800,
                                         ),
                                       ),
-                                      SizedBox(height: 2),
-                                      Text(
-                                        'Barang siap untuk inspeksi',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.green.shade700,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
+                                SizedBox(height: 8),
+                                if (inspectionStatus['last_inspection'] != null)
+                                  Text(
+                                    'Terakhir inspeksi: ${inspectionStatus['last_inspection']}',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey.shade700),
+                                  ),
+                                if (inspectionStatus['next_inspection'] != null)
+                                  Text(
+                                    'Jadwal berikutnya: ${inspectionStatus['next_inspection']}',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey.shade700),
+                                  ),
                               ],
                             ),
                           ),
+
                         ],
                       ),
                     ),
@@ -266,9 +269,14 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
                         child: Container(
                           height: 50,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
+                            gradient: inspectionStatus['is_due'] == true
+                                ? LinearGradient(
                               colors: [Colors.blue.shade600, Colors.blue.shade800],
+                            )
+                                : LinearGradient(
+                              colors: [Colors.grey.shade400, Colors.grey.shade500],
                             ),
+
                             borderRadius: BorderRadius.circular(14),
                             boxShadow: [
                               BoxShadow(
@@ -279,7 +287,8 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
                             ],
                           ),
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: inspectionStatus['is_due'] == true
+                                ? () {
                               Navigator.of(context).pop();
                               Navigator.push(
                                 context,
@@ -287,13 +296,14 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
                                   builder: (_) => FormulirLaporanHalaman(
                                     idAlat: data['id_barang'].toString(),
                                     namaAlat: data['nama_barang'] ?? '-',
-                                    tipeBarang: data['tipe_barang'],
+                                    tipeBarang: data['tipe_barang_kategori'],
                                     lokasiAlat: data['lokasi_barang'] ?? '-',
                                     qrCodeData: qrCode,
                                   ),
                                 ),
                               );
-                            },
+                            } : null,
+
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
@@ -635,7 +645,7 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
       }
 
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/barang/${Uri.encodeComponent(parsed)}'),
+        Uri.parse('${Env.baseUrl}/api/barang/${Uri.encodeComponent(parsed)}'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -649,22 +659,23 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
 
       final body = jsonDecode(response.body);
       final data = body['data'];
+      final inspectionStatus = data['inspection_status'];
+
 
       if (data == null) {
         await _showDialogError('Barang tidak ditemukan.');
         return;
       }
 
-      final tipe = (data['tipe_barang'] ?? '').toString().toUpperCase();
+      final tipe = (data['tipe_barang_kategori'] ?? '').toString().toUpperCase();
 
-      // 🔥 VALIDASI TIPE BARANG
       if (tipe != 'APAR' && tipe != 'HYDRANT') {
         await _showDialogError('Barang bukan APAR atau HYDRANT.');
         return;
       }
 
-      // ✅ LULUS → MASUK FORM LAPORAN
-      await _showPreviewBarangDialog(data, parsed);
+      await _showPreviewBarangDialog(data, parsed, inspectionStatus);
+
 
 
     } catch (e) {
@@ -732,7 +743,7 @@ class _QrCodeHalamanState extends State<QrCodeHalaman> with SingleTickerProvider
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildDetailRow('Nama Barang', data['nama_barang']),
-                _buildDetailRow('Tipe Barang', data['tipe_barang']),
+                _buildDetailRow('Tipe Barang', data['tipe_barang_kategori']),
                 _buildDetailRow('Lokasi', data['lokasi_barang']),
                 _buildDetailRow('Nomor Identifikasi', data['nomor_identifikasi']),
                 SizedBox(height: 8),

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/login_page.dart';
+import 'package:tunassiakanugrah/config/env.dart';
 
 class NotifikasiPage extends StatefulWidget {
   const NotifikasiPage({super.key});
@@ -33,7 +34,7 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
     }
 
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8000/api/notifikasi'),
+      Uri.parse('${Env.baseUrl}/api/notifikasi'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',

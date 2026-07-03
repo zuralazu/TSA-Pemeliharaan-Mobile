@@ -180,7 +180,7 @@ class _KelolaAkunPageState extends State<KelolaAkunPage> {
                   _buildMenuCard(
                     icon: Icons.edit_outlined,
                     iconColor: Colors.blue,
-                    title: 'Ubah Akun',
+                    title: 'Ubah Password',
                     subtitle: 'Perbarui informasi profil',
                     onTap: () {
                       Navigator.push(
@@ -189,8 +189,6 @@ class _KelolaAkunPageState extends State<KelolaAkunPage> {
                       ).then((_) => _loadUserData());
                     },
                   ),
-
-                  const SizedBox(height: 12),
 
                   // Company Info Card
                   _buildMenuCard(
@@ -205,8 +203,6 @@ class _KelolaAkunPageState extends State<KelolaAkunPage> {
                       );
                     },
                   ),
-
-                  const SizedBox(height: 30),
 
                   // Logout Card
                   _buildMenuCard(

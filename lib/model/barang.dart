@@ -1,6 +1,6 @@
 // model/barang.dart
 class Barang {
-  final int id;
+  final String id;
   final String nama;
   final String tipe;
   final int jumlah;
@@ -30,18 +30,24 @@ class Barang {
 
   factory Barang.fromJson(Map<String, dynamic> json) {
     return Barang(
-      id: json['id_barang'],
-      nama: json['nama_barang'],
-      tipe: json['tipe_barang'],
-      jumlah: json['jumlah_barang'],
-      berat: double.tryParse(json['berat_barang'].toString()),
-      satuan: json['satuan'],
-      kondisi: json['kondisi'],
-      hargaBeli: double.tryParse(json['harga_beli'].toString()),
-      hargaJual: double.tryParse(json['harga_jual'].toString()),
-      ukuran: json['ukuran_barang'],
-      merek: json['merek_barang'],
-      createdByRole: json['created_by_role'],
+      id: json['id_barang'].toString(),
+      nama: json['nama_barang'].toString(),
+      tipe: json['tipe_barang'].toString(),
+      jumlah: int.parse(json['jumlah_barang'].toString()),
+      berat: json['berat_barang'] != null
+          ? double.tryParse(json['berat_barang'].toString())
+          : null,
+      satuan: json['satuan']?.toString(),
+      kondisi: json['kondisi']?.toString(),
+      hargaBeli: json['harga_beli'] != null
+          ? double.tryParse(json['harga_beli'].toString())
+          : null,
+      hargaJual: json['harga_jual'] != null
+          ? double.tryParse(json['harga_jual'].toString())
+          : null,
+      ukuran: json['ukuran_barang']?.toString(),
+      merek: json['merek_barang']?.toString(),
+      createdByRole: json['created_by_role']?.toString(),
     );
   }
 }
