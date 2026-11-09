@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tunassiakanugrah/config/env.dart';
 
 class TambahBarangPage extends StatefulWidget {
   final String? nomorIdentifikasi; // dari hasil scan QR (bisa null/empty)
@@ -14,12 +15,19 @@ class TambahBarangPage extends StatefulWidget {
 
 class _TambahBarangPageState extends State<TambahBarangPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nomorIdentifikasiController = TextEditingController();
+  final TextEditingController _nomorIdentifikasiController =
+      TextEditingController();
   final TextEditingController _namaBarangController = TextEditingController();
   final TextEditingController _tipeController = TextEditingController();
-  final TextEditingController _jumlahController = TextEditingController(text: '1');
-  final TextEditingController _satuanController = TextEditingController(text: 'pcs');
-  final TextEditingController _kondisiController = TextEditingController(text: 'Baik');
+  final TextEditingController _jumlahController = TextEditingController(
+    text: '1',
+  );
+  final TextEditingController _satuanController = TextEditingController(
+    text: 'pcs',
+  );
+  final TextEditingController _kondisiController = TextEditingController(
+    text: 'Baik',
+  );
   final TextEditingController _beratController = TextEditingController();
   final TextEditingController _merekController = TextEditingController();
   final TextEditingController _ukuranController = TextEditingController();
@@ -40,7 +48,6 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
       _generateNomorIdentifikasi();
     }
   }
-
 
   void _generateNomorIdentifikasi() {
     // Generate nomor identifikasi dengan format timestamp
@@ -92,9 +99,7 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
         return;
       }
 
-      print('[DEBUG] User data parsed - Role: $userRole, ID: $userId');
-
-      final apiUrl = Uri.parse('http://10.0.2.2:8000/api/supervisor-umum/barang');
+      final apiUrl = Uri.parse('${Env.baseUrl}/api/supervisor-umum/barang');
 
       final body = {
         'nomor_identifikasi': _nomorIdentifikasiController.text.trim(),
@@ -103,23 +108,32 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
         'tipe_barang': _tipeController.text.trim(),
         'satuan': _satuanController.text.trim(),
         'kondisi': _kondisiController.text.trim(),
-        'lokasi_barang': _lokasiController.text.trim().isEmpty ? null : _lokasiController.text.trim(),
-        'berat_barang': _beratController.text.trim().isEmpty ? null : double.tryParse(_beratController.text.trim()),
-        'merek_barang': _merekController.text.trim().isEmpty ? null : _merekController.text.trim(),
-        'ukuran_barang': _ukuranController.text.trim().isEmpty ? null : _ukuranController.text.trim(),
-        'harga_beli': _hargaBeliController.text.trim().isEmpty ? null : double.tryParse(_hargaBeliController.text.trim()),
-        'harga_jual': _hargaJualController.text.trim().isEmpty ? null : double.tryParse(_hargaJualController.text.trim()),
+        'lokasi_barang': _lokasiController.text.trim().isEmpty
+            ? null
+            : _lokasiController.text.trim(),
+        'berat_barang': _beratController.text.trim().isEmpty
+            ? null
+            : double.tryParse(_beratController.text.trim()),
+        'merek_barang': _merekController.text.trim().isEmpty
+            ? null
+            : _merekController.text.trim(),
+        'ukuran_barang': _ukuranController.text.trim().isEmpty
+            ? null
+            : _ukuranController.text.trim(),
+        'harga_beli': _hargaBeliController.text.trim().isEmpty
+            ? null
+            : double.tryParse(_hargaBeliController.text.trim()),
+        'harga_jual': _hargaJualController.text.trim().isEmpty
+            ? null
+            : double.tryParse(_hargaJualController.text.trim()),
         // PERBAIKAN: Tambahkan created_by_role dan created_by_id
         'created_by_role': userRole,
-        'created_by_id': int.tryParse(userId) ?? userId, // Handle both string and int
+        'created_by_id':
+            int.tryParse(userId) ?? userId, // Handle both string and int
       };
 
       // Remove null values
       body.removeWhere((key, value) => value == null);
-
-      print('[DEBUG] Sending data to server: ${json.encode(body)}');
-      print('[DEBUG] User data: $userData');
-      print('[DEBUG] Token: ${token.substring(0, 20)}...'); // Log partial token for security
 
       final response = await http.post(
         apiUrl,
@@ -131,21 +145,19 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
         body: json.encode(body),
       );
 
-      print('[DEBUG] Response status: ${response.statusCode}');
-      print('[DEBUG] Response body: ${response.body}');
-
       if (response.statusCode == 201 || response.statusCode == 200) {
         dynamic respJson;
         try {
           respJson = json.decode(response.body);
         } catch (_) {
-          respJson = {'message': 'Barang berhasil ditambahkan (response tidak JSON).'};
+          respJson = {
+            'message': 'Barang berhasil ditambahkan (response tidak JSON).',
+          };
         }
 
         final message = respJson['message'] ?? 'Barang berhasil ditambahkan';
 
         await _showSuccessDialog(message, respJson['data']);
-
       } else if (response.statusCode == 422) {
         // Validation error
         try {
@@ -173,7 +185,8 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
         _showError('Anda tidak memiliki hak akses untuk menambahkan barang.');
       } else {
         // Other errors
-        String errMsg = 'Gagal menambahkan barang. Status: ${response.statusCode}';
+        String errMsg =
+            'Gagal menambahkan barang. Status: ${response.statusCode}';
         try {
           final errJson = json.decode(response.body);
           if (errJson is Map && errJson['message'] != null) {
@@ -181,13 +194,13 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
           }
         } catch (_) {
           String bodySnippet = response.body;
-          if (bodySnippet.length > 400) bodySnippet = bodySnippet.substring(0, 400) + '...';
+          if (bodySnippet.length > 400)
+            bodySnippet = bodySnippet.substring(0, 400) + '...';
           errMsg = 'Gagal menambahkan barang. Server response:\n$bodySnippet';
         }
         _showError(errMsg);
       }
     } catch (e) {
-      print('[ERROR] Exception in _simpanBarang: $e');
       _showError('Terjadi kesalahan koneksi: $e');
     } finally {
       setState(() => _isLoading = false);
@@ -240,7 +253,10 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Detail Barang:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      'Detail Barang:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     SizedBox(height: 4),
                     if (data['nama_barang'] != null)
                       Text('Nama: ${data['nama_barang']}'),
@@ -258,7 +274,9 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(true); // Kembali ke scanner dengan result
+              Navigator.of(
+                context,
+              ).pop(true); // Kembali ke scanner dengan result
             },
             child: Text('OK'),
           ),
@@ -268,14 +286,12 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
   }
 
   Widget _buildTextField(
-      String label,
-      TextEditingController controller,
-      {
-        TextInputType keyboard = TextInputType.text,
-        bool required = true,
-        String? hint
-      }
-      ) {
+    String label,
+    TextEditingController controller, {
+    TextInputType keyboard = TextInputType.text,
+    bool required = true,
+    String? hint,
+  }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboard,
@@ -291,7 +307,9 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
         }
 
         // Validasi khusus untuk nomor identifikasi
-        if (label.contains('Nomor Identifikasi') && value != null && value.trim().isNotEmpty) {
+        if (label.contains('Nomor Identifikasi') &&
+            value != null &&
+            value.trim().isNotEmpty) {
           if (value.trim().length < 3) {
             return "Nomor identifikasi minimal 3 karakter";
           }
@@ -302,7 +320,9 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
         }
 
         // Validasi untuk angka
-        if (keyboard == TextInputType.number && value != null && value.trim().isNotEmpty) {
+        if (keyboard == TextInputType.number &&
+            value != null &&
+            value.trim().isNotEmpty) {
           if (label.contains('Jumlah')) {
             final number = int.tryParse(value.trim());
             if (number == null || number <= 0) {
@@ -377,13 +397,17 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
 
               // Form fields
               _buildTextField(
-                  'Nomor Identifikasi',
-                  _nomorIdentifikasiController,
-                  hint: 'Contoh: APAR'
+                'Nomor Identifikasi',
+                _nomorIdentifikasiController,
+                hint: 'Contoh: APAR',
               ),
               SizedBox(height: 12),
 
-              _buildTextField('Nama Barang', _namaBarangController, hint: 'Contoh: Laptop Dell'),
+              _buildTextField(
+                'Nama Barang',
+                _namaBarangController,
+                hint: 'Contoh: Laptop Dell',
+              ),
               SizedBox(height: 12),
 
               Row(
@@ -391,28 +415,45 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
                   Expanded(
                     flex: 2,
                     child: _buildTextField(
-                        'Jumlah',
-                        _jumlahController,
-                        keyboard: TextInputType.number,
-                        hint: '1'
+                      'Jumlah',
+                      _jumlahController,
+                      keyboard: TextInputType.number,
+                      hint: '1',
                     ),
                   ),
                   SizedBox(width: 12),
                   Expanded(
                     flex: 3,
-                    child: _buildTextField('Satuan', _satuanController, hint: 'pcs, kg, liter'),
+                    child: _buildTextField(
+                      'Satuan',
+                      _satuanController,
+                      hint: 'pcs, kg, liter',
+                    ),
                   ),
                 ],
               ),
               SizedBox(height: 12),
 
-              _buildTextField('Tipe Barang', _tipeController, hint: 'Contoh: Elektronik'),
+              _buildTextField(
+                'Tipe Barang',
+                _tipeController,
+                hint: 'Contoh: Elektronik',
+              ),
               SizedBox(height: 12),
 
-              _buildTextField('Kondisi', _kondisiController, hint: 'Baik, Rusak, Perlu Perbaikan'),
+              _buildTextField(
+                'Kondisi',
+                _kondisiController,
+                hint: 'Baik, Rusak, Perlu Perbaikan',
+              ),
               SizedBox(height: 12),
 
-              _buildTextField('Lokasi Barang', _lokasiController, required: false, hint: 'Contoh: Gudang A'),
+              _buildTextField(
+                'Lokasi Barang',
+                _lokasiController,
+                required: false,
+                hint: 'Contoh: Gudang A',
+              ),
               SizedBox(height: 12),
 
               // Optional fields section
@@ -425,39 +466,55 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
                     child: Column(
                       children: [
                         _buildTextField(
-                            'Berat (kg)',
-                            _beratController,
-                            keyboard: TextInputType.numberWithOptions(decimal: true),
-                            required: false,
-                            hint: '0.5'
+                          'Berat (kg)',
+                          _beratController,
+                          keyboard: TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          required: false,
+                          hint: '0.5',
                         ),
                         SizedBox(height: 12),
 
-                        _buildTextField('Merek', _merekController, required: false, hint: 'Contoh: Dell, HP'),
+                        _buildTextField(
+                          'Merek',
+                          _merekController,
+                          required: false,
+                          hint: 'Contoh: Dell, HP',
+                        ),
                         SizedBox(height: 12),
 
-                        _buildTextField('Ukuran', _ukuranController, required: false, hint: 'Contoh: 14 inch'),
+                        _buildTextField(
+                          'Ukuran',
+                          _ukuranController,
+                          required: false,
+                          hint: 'Contoh: 14 inch',
+                        ),
                         SizedBox(height: 12),
 
                         Row(
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                  'Harga Beli',
-                                  _hargaBeliController,
-                                  keyboard: TextInputType.numberWithOptions(decimal: true),
-                                  required: false,
-                                  hint: '1000000'
+                                'Harga Beli',
+                                _hargaBeliController,
+                                keyboard: TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                required: false,
+                                hint: '1000000',
                               ),
                             ),
                             SizedBox(width: 12),
                             Expanded(
                               child: _buildTextField(
-                                  'Harga Jual',
-                                  _hargaJualController,
-                                  keyboard: TextInputType.numberWithOptions(decimal: true),
-                                  required: false,
-                                  hint: '1200000'
+                                'Harga Jual',
+                                _hargaJualController,
+                                keyboard: TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                required: false,
+                                hint: '1200000',
                               ),
                             ),
                           ],
@@ -485,28 +542,28 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
                   ),
                   child: _isLoading
                       ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Text('Menyimpan...'),
-                    ],
-                  )
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Text('Menyimpan...'),
+                          ],
+                        )
                       : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.save),
-                      SizedBox(width: 8),
-                      Text('Simpan Barang'),
-                    ],
-                  ),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.save),
+                            SizedBox(width: 8),
+                            Text('Simpan Barang'),
+                          ],
+                        ),
                 ),
               ),
 
@@ -539,10 +596,7 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
                     SizedBox(height: 4),
                     Text(
                       '• Barang yang Anda tambahkan hanya bisa diakses dan diedit oleh Anda sendiri\n• Pastikan nomor identifikasi unik dan mudah diingat\n• Data yang sudah disimpan tidak bisa dihapus melalui aplikasi ini',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 11),
                     ),
                   ],
                 ),

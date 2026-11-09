@@ -28,17 +28,17 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
 
     if (token == null) {
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => LoginPage()),
+        );
       }
       return;
     }
 
     final response = await http.get(
       Uri.parse('${Env.baseUrl}/api/notifikasi'),
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
     );
 
     if (mounted) {
@@ -46,18 +46,20 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
         final Map<String, dynamic> responseJson = json.decode(response.body);
         final List<dynamic> data = responseJson['data'];
 
-        final List<Map<String, dynamic>> hasil = data.map<Map<String, dynamic>>((item) {
-          final barang = item['barang'] ?? {};
-          return {
-            'judul': item['judul'] ?? 'Notifikasi',
-            'deskripsi': item['deskripsi'] ?? 'Tidak ada deskripsi.',
-            'tipe': item['tipe'] ?? 'info',
-            'tanggal': item['tanggal'] ?? 'Tidak diketahui',
-            'baru': item['baru'] ?? false,
-            'nama_barang': barang['nama_barang'] ?? 'Tidak diketahui',
-            'lokasi': barang['lokasi'] ?? 'Tidak diketahui',
-          };
-        }).toList();
+        final List<Map<String, dynamic>> hasil = data.map<Map<String, dynamic>>(
+          (item) {
+            final barang = item['barang'] ?? {};
+            return {
+              'judul': item['judul'] ?? 'Notifikasi',
+              'deskripsi': item['deskripsi'] ?? 'Tidak ada deskripsi.',
+              'tipe': item['tipe'] ?? 'info',
+              'tanggal': item['tanggal'] ?? 'Tidak diketahui',
+              'baru': item['baru'] ?? false,
+              'nama_barang': barang['nama_barang'] ?? 'Tidak diketahui',
+              'lokasi': barang['lokasi'] ?? 'Tidak diketahui',
+            };
+          },
+        ).toList();
 
         setState(() {
           notifikasiList = hasil;
@@ -65,7 +67,10 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
         });
       } else if (response.statusCode == 401) {
         // Tangani token tidak valid
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => LoginPage()),
+        );
       } else if (response.statusCode == 403) {
         // ✅ Tangani role yang tidak memiliki akses dengan pop-up
         final Map<String, dynamic> responseJson = json.decode(response.body);
@@ -74,12 +79,17 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Informasi!'),
-              content: Text(responseJson['message'] ?? 'Anda tidak memiliki izin untuk melihat halaman ini.'),
+              content: Text(
+                responseJson['message'] ??
+                    'Anda tidak memiliki izin untuk melihat halaman ini.',
+              ),
               actions: <Widget>[
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    Navigator.of(context).pop(); // Keluar dari halaman notifikasi
+                    Navigator.of(
+                      context,
+                    ).pop(); // Keluar dari halaman notifikasi
                   },
                   child: const Text('Kembali'),
                 ),
@@ -88,10 +98,13 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
           },
         );
       } else {
-        setState(() { isLoading = false; });
-        print('[ERROR] Gagal memuat notifikasi (${response.statusCode})');
+        setState(() {
+          isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal memuat notifikasi: ${response.statusCode}'))
+          SnackBar(
+            content: Text('Gagal memuat notifikasi: ${response.statusCode}'),
+          ),
         );
       }
     }
@@ -137,75 +150,87 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
           ? Center(child: CircularProgressIndicator())
           : notifikasiList.isEmpty
           ? Center(
-        child: Text(
-          'Tidak ada notifikasi barang yang belum dicek.',
-          style: TextStyle(color: Colors.grey),
-        ),
-      )
+              child: Text(
+                'Tidak ada notifikasi barang yang belum dicek.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            )
           : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: notifikasiList.length,
-        itemBuilder: (context, index) {
-          final item = notifikasiList[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [getColor(item['tipe'])!, Colors.white],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: Offset(2, 4),
-                ),
-              ],
-            ),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(getIcon(item['tipe']), color: Colors.black87),
-              ),
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      item['judul'],
-                      style: TextStyle(fontWeight: FontWeight.bold),
+              padding: const EdgeInsets.all(16),
+              itemCount: notifikasiList.length,
+              itemBuilder: (context, index) {
+                final item = notifikasiList[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [getColor(item['tipe'])!, Colors.white],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: Offset(2, 4),
+                      ),
+                    ],
                   ),
-                  if (item['baru'] == true)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Baru',
-                        style: TextStyle(color: Colors.white, fontSize: 10),
-                      ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: Icon(getIcon(item['tipe']), color: Colors.black87),
                     ),
-                ],
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item['deskripsi'], style: TextStyle(height: 1.3)),
-                  const SizedBox(height: 4),
-                  Text(item['tanggal'], style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                ],
-              ),
-              isThreeLine: true,
-              contentPadding: const EdgeInsets.all(16),
+                    title: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item['judul'],
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        if (item['baru'] == true)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Baru',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(item['deskripsi'], style: TextStyle(height: 1.3)),
+                        const SizedBox(height: 4),
+                        Text(
+                          item['tanggal'],
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    isThreeLine: true,
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }

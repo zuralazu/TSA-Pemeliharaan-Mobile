@@ -1,30 +1,61 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show PageView, Size;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:tunassiakanugrah/auth/login_page.dart';
+import 'package:tunassiakanugrah/auth/register_page.dart';
 import 'package:tunassiakanugrah/main.dart';
 
+void setViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(393, 852);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+}
+
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('shows the introduction on first launch', (tester) async {
+    setViewport(tester);
+    SharedPreferences.setMockInitialValues({});
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpWidget(const AplikasiSaya());
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Selamat datang di APK Tracker'), findsOneWidget);
+    expect(find.byType(PageView), findsOneWidget);
   });
+
+  testWidgets('shows Register and Login on later launches', (tester) async {
+    setViewport(tester);
+    SharedPreferences.setMockInitialValues({'intro_seen': true});
+
+    await tester.pumpWidget(const AplikasiSaya());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Register'), findsOneWidget);
+    expect(find.text('Login'), findsOneWidget);
+  });
+
+  for (final action in ['Register', 'Login']) {
+    testWidgets('saves intro completion before opening $action', (tester) async {
+      setViewport(tester);
+      SharedPreferences.setMockInitialValues({});
+
+      await tester.pumpWidget(const AplikasiSaya());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.drag(find.byType(PageView), const Offset(-1200, 0));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text(action));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('intro_seen'), isTrue);
+      expect(
+        find.byType(action == 'Register' ? RegisterPage : LoginPage),
+        findsOneWidget,
+      );
+    });
+  }
 }

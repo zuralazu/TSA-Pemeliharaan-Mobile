@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "check": "flutter analyze --no-fatal-infos --no-fatal-warnings && flutter test"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}

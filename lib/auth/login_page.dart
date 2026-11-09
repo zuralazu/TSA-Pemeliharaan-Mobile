@@ -56,14 +56,10 @@ class _LoginPageState extends State<LoginPage> {
     final String apiUrl = '${Env.baseUrl}/api/login-android';
 
     try {
-      print('Mengirim permintaan Login ke: $apiUrl');
-
       final Map<String, String> requestBody = {
         'username': username,
         'password': password,
       };
-
-      print('Body permintaan: ${jsonEncode(requestBody)}');
 
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -74,11 +70,6 @@ class _LoginPageState extends State<LoginPage> {
         },
         body: jsonEncode(requestBody),
       );
-
-
-      print('Status Code: ${response.statusCode}');
-      print('Response Headers: ${response.headers}');
-      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
@@ -93,9 +84,10 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('access_token', user.accessToken ?? '');
 
         // Simpan timestamp login saat ini
-        await prefs.setInt('login_timestamp', DateTime.now().millisecondsSinceEpoch);
-        print('✅ USER DATA DISIMPAN: ${jsonEncode(user.toJson())}');
-        print('✅ TIMESTAMP DISIMPAN: ${DateTime.now().millisecondsSinceEpoch}');
+        await prefs.setInt(
+          'login_timestamp',
+          DateTime.now().millisecondsSinceEpoch,
+        );
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -144,10 +136,7 @@ class _LoginPageState extends State<LoginPage> {
                 Icon(Icons.error_outline, color: Colors.white),
                 SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    errorMessage,
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: Text(errorMessage, style: TextStyle(fontSize: 16)),
                 ),
               ],
             ),
@@ -228,7 +217,6 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (e) {
-      print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -265,10 +253,7 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1976D2),
-              Color(0xFF42A5F5),
-            ],
+            colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
           ),
         ),
         child: SafeArea(
@@ -358,30 +343,49 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: InputDecoration(
                               labelText: 'Username',
                               hintText: 'Masukkan username',
-                              prefixIcon: Icon(Icons.person_outline, color: Color(0xFF1976D2)),
+                              prefixIcon: Icon(
+                                Icons.person_outline,
+                                color: Color(0xFF1976D2),
+                              ),
                               filled: true,
                               fillColor: Colors.grey[50],
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Color(0xFF1976D2), width: 2),
+                                borderSide: BorderSide(
+                                  color: Color(0xFF1976D2),
+                                  width: 2,
+                                ),
                               ),
                               errorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.red, width: 1),
+                                borderSide: BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
                               ),
                               focusedErrorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.red, width: 2),
+                                borderSide: BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
                               ),
-                              contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 16,
+                              ),
                             ),
                             keyboardType: TextInputType.text,
                           ),
@@ -394,10 +398,15 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: InputDecoration(
                               labelText: 'Password',
                               hintText: 'Masukkan password',
-                              prefixIcon: Icon(Icons.lock_outline, color: Color(0xFF1976D2)),
+                              prefixIcon: Icon(
+                                Icons.lock_outline,
+                                color: Color(0xFF1976D2),
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                  _obscurePassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
                                   color: Color(0xFF1976D2),
                                 ),
                                 onPressed: () {
@@ -410,25 +419,41 @@ class _LoginPageState extends State<LoginPage> {
                               fillColor: Colors.grey[50],
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Color(0xFF1976D2), width: 2),
+                                borderSide: BorderSide(
+                                  color: Color(0xFF1976D2),
+                                  width: 2,
+                                ),
                               ),
                               errorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.red, width: 1),
+                                borderSide: BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
                               ),
                               focusedErrorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.red, width: 2),
+                                borderSide: BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
                               ),
-                              contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 16,
+                              ),
                             ),
                             obscureText: _obscurePassword,
                           ),
@@ -451,28 +476,47 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               child: _isLoading
                                   ? SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
                                   : Text(
-                                'Login',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: 1,
-                                ),
-                              ),
+                                      'Login',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
                             ),
                           ),
                         ],
                       ),
                     ),
                     SizedBox(height: 30),
+
+                    TextButton(
+                      key: const Key('login-to-register'),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/register'),
+                      child: const Text.rich(
+                        TextSpan(
+                          text: 'Belum punya akun? ',
+                          style: TextStyle(color: Colors.white),
+                          children: [
+                            TextSpan(
+                              text: 'Daftar sekarang',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 8),
 
                     // Version Info
                     Text(

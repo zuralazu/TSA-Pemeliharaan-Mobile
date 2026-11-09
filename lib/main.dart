@@ -1,10 +1,12 @@
 import 'dart:io'; // ⬅️ WAJIB
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tunassiakanugrah/auth/login_page.dart';
 import 'package:tunassiakanugrah/auth/register_page.dart';
 import 'package:tunassiakanugrah/utama/dasbor_halaman.dart';
 import 'package:tunassiakanugrah/auth/onboarding_page.dart';
+import 'package:tunassiakanugrah/auth/intro_onboarding_page.dart';
 import 'package:tunassiakanugrah/utama/notifikasi_page.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -19,8 +21,8 @@ class MyHttpOverrides extends HttpOverrides {
 }
 
 Future<void> main() async {
-  HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
+  if (kDebugMode) HttpOverrides.global = MyHttpOverrides();
   await dotenv.load(fileName: ".env");
   runApp(const AplikasiSaya());
 }
@@ -30,6 +32,7 @@ class AplikasiSaya extends StatelessWidget {
 
   Future<Widget> _cekLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    final introSeen = prefs.getBool('intro_seen') ?? false;
     String? userData = prefs.getString('user_data');
     int? loginTime = prefs.getInt('login_timestamp');
 
@@ -45,10 +48,10 @@ class AplikasiSaya extends StatelessWidget {
         await prefs.remove('user_data');
         await prefs.remove('access_token');
         await prefs.remove('login_timestamp');
-        return OnboardingPage();
+        return introSeen ? OnboardingPage() : const IntroOnboardingPage();
       }
     } else {
-      return OnboardingPage();
+      return introSeen ? OnboardingPage() : const IntroOnboardingPage();
     }
   }
 
@@ -72,6 +75,7 @@ class AplikasiSaya extends StatelessWidget {
       ),
       routes: {
         '/login': (context) => LoginPage(),
+        '/entry': (context) => OnboardingPage(),
         '/register': (context) => RegisterPage(),
         '/dashboard': (context) => DasborHalaman(),
         '/notifikasi': (context) => NotifikasiPage(),

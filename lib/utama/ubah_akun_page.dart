@@ -74,9 +74,6 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
         }),
       );
 
-      print('📡 Status Code: ${response.statusCode}');
-      print('📡 Response Body: ${response.body}');
-
       setState(() => _isLoading = false);
 
       if (response.statusCode == 200) {
@@ -91,7 +88,6 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
         Future.delayed(const Duration(seconds: 1), () {
           if (context.mounted) Navigator.pop(context);
         });
-
       } else {
         // kalau HTML, jangan decode JSON
         if (!response.body.startsWith('{')) {
@@ -102,21 +98,20 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
         }
 
         final errorData = json.decode(response.body);
-        final errorMessage = errorData['message'] ?? 'Gagal memperbarui password';
+        final errorMessage =
+            errorData['message'] ?? 'Gagal memperbarui password';
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
       }
-
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -141,14 +136,14 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Colors.blue.shade600,
-                    Colors.blue.shade400,
-                  ],
+                  colors: [Colors.blue.shade600, Colors.blue.shade400],
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 30,
+                  horizontal: 20,
+                ),
                 child: Column(
                   children: [
                     Container(
@@ -181,7 +176,10 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
                     ),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -217,7 +215,11 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 24),
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.blue.shade700,
+                            size: 24,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -266,8 +268,15 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
                             style: const TextStyle(fontSize: 15),
                             decoration: InputDecoration(
                               hintText: 'Masukkan password baru',
-                              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                              prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[600], size: 22),
+                              hintStyle: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 14,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.lock_outline,
+                                color: Colors.grey[600],
+                                size: 22,
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
@@ -277,7 +286,9 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
                                   size: 22,
                                 ),
                                 onPressed: () {
-                                  setState(() => _obscurePassword = !_obscurePassword);
+                                  setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  );
                                 },
                               ),
                               border: OutlineInputBorder(
@@ -286,24 +297,37 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(color: Colors.grey.shade200),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade200,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade400,
+                                  width: 2,
+                                ),
                               ),
                               errorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: Colors.red, width: 1),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
                               ),
                               focusedErrorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: Colors.red, width: 2),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
                               ),
                               filled: true,
                               fillColor: Colors.white,
-                              contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
@@ -347,27 +371,27 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle_outline, size: 22),
-                            SizedBox(width: 10),
-                            Text(
-                              'Simpan Perubahan',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.check_circle_outline, size: 22),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Simpan Perubahan',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
 
@@ -375,7 +399,9 @@ class _UbahAkunPageState extends State<UbahAkunPage> {
 
                     // Cancel Button
                     TextButton(
-                      onPressed: _isLoading ? null : () => Navigator.pop(context),
+                      onPressed: _isLoading
+                          ? null
+                          : () => Navigator.pop(context),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
