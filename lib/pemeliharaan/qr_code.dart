@@ -10,6 +10,8 @@ import 'package:tunassiakanugrah/pemeliharaan/widgets/qr_scanner_overlay.dart';
 import 'package:tunassiakanugrah/widgets/common/info_dialog.dart';
 
 class QrCodeHalaman extends StatefulWidget {
+  const QrCodeHalaman({super.key});
+
   @override
   _QrCodeHalamanState createState() => _QrCodeHalamanState();
 }

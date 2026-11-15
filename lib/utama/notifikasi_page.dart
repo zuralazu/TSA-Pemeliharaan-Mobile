@@ -164,7 +164,7 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [getColor(item['tipe'])!, Colors.white],
+                      colors: [getColor(item['tipe']), Colors.white],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

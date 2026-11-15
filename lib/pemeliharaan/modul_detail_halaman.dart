@@ -5,10 +5,10 @@ class ModulDetailHalaman extends StatelessWidget {
   final String modulTitle;
 
   const ModulDetailHalaman({
-    Key? key,
+    super.key,
     required this.modulType,
     required this.modulTitle,
-  }) : super(key: key);
+  });
 
   static const Map<String, List<String>> sopData = {
     'sop_apar': [

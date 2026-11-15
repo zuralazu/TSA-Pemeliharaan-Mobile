@@ -11,7 +11,7 @@ class NewsCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const NewsCard({
-    Key? key,
+    super.key,
     required this.kategori,
     required this.kategoriColor,
     required this.icon,
@@ -19,7 +19,7 @@ class NewsCard extends StatelessWidget {
     required this.ringkasan,
     required this.tanggal,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

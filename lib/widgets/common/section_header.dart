@@ -7,11 +7,11 @@ class SectionHeader extends StatelessWidget {
   final double fontSize;
 
   const SectionHeader({
-    Key? key,
+    super.key,
     required this.title,
     this.accentColor = AppColors.primary,
     this.fontSize = 18,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -10,7 +10,7 @@ class InfoDialog extends StatelessWidget {
   final VoidCallback? onButtonPressed;
 
   const InfoDialog({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.message,
@@ -18,7 +18,7 @@ class InfoDialog extends StatelessWidget {
     required this.headerColors,
     this.buttonLabel = 'Mengerti',
     this.onButtonPressed,
-  }) : super(key: key);
+  });
 
   /// Shortcut untuk dialog error (merah).
   factory InfoDialog.error({

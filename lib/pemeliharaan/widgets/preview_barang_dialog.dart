@@ -8,12 +8,12 @@ class PreviewBarangDialog extends StatelessWidget {
   final VoidCallback onBatal;
 
   const PreviewBarangDialog({
-    Key? key,
+    super.key,
     required this.data,
     required this.qrCode,
     required this.inspectionStatus,
     required this.onBatal,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

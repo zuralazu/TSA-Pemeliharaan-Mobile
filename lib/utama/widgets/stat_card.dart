@@ -10,14 +10,14 @@ class StatCardLarge extends StatelessWidget {
   final VoidCallback? onTap;
 
   const StatCardLarge({
-    Key? key,
+    super.key,
     required this.title,
     required this.value,
     required this.icon,
     required this.startColor,
     required this.endColor,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -99,14 +99,14 @@ class StatCardSmall extends StatelessWidget {
   final VoidCallback? onTap;
 
   const StatCardSmall({
-    Key? key,
+    super.key,
     required this.title,
     required this.value,
     required this.icon,
     required this.startColor,
     required this.endColor,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

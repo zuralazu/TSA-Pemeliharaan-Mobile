@@ -20,7 +20,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
   bool _isLoading = true;
 
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {

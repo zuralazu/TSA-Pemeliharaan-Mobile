@@ -21,7 +21,7 @@ import 'package:tunassiakanugrah/widgets/common/section_header.dart';
 class DasborHalaman extends StatefulWidget {
   final int initialIndex;
 
-  const DasborHalaman({Key? key, this.initialIndex = 0}) : super(key: key);
+  const DasborHalaman({super.key, this.initialIndex = 0});
 
   @override
   _DasborHalamanState createState() => _DasborHalamanState();

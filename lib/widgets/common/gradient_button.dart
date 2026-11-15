@@ -13,7 +13,7 @@ class GradientButton extends StatelessWidget {
   final double fontSize;
 
   const GradientButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.colors,
     required this.onPressed,
@@ -22,7 +22,7 @@ class GradientButton extends StatelessWidget {
     this.height = 50,
     this.borderRadius = 14,
     this.fontSize = 15,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

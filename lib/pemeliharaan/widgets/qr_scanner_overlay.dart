@@ -7,12 +7,12 @@ class QrScannerOverlay extends StatelessWidget {
   final VoidCallback onSwitchCamera;
 
   const QrScannerOverlay({
-    Key? key,
+    super.key,
     required this.animation,
     required this.isFlashOn,
     required this.onToggleFlash,
     required this.onSwitchCamera,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

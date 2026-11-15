@@ -11,7 +11,7 @@ class HydrantFields extends StatelessWidget {
   final void Function(String) onSelangHydrantChanged;
 
   const HydrantFields({
-    Key? key,
+    super.key,
     required this.tekananAirTerpilih,
     required this.katupTerpilih,
     required this.selangHydrantTerpilih,
@@ -20,7 +20,7 @@ class HydrantFields extends StatelessWidget {
     required this.onTekananAirChanged,
     required this.onKatupChanged,
     required this.onSelangHydrantChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -70,13 +70,13 @@ class _CompactOptionGroup extends StatelessWidget {
   final void Function(String) onChanged;
 
   const _CompactOptionGroup({
-    Key? key,
+    super.key,
     required this.title,
     required this.options,
     required this.selectedValue,
     required this.accentColor,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -119,12 +119,12 @@ class _ChoiceChip extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ChoiceChip({
-    Key? key,
+    super.key,
     required this.label,
     required this.isSelected,
     required this.accentColor,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze:*)",
+      "Bash(flutter test:*)",
+      "Bash(flutter pub get)",
+      "Bash(flutter --version)",
+      "Bash(flutter doctor:*)",
+      "Bash(flutter emulators:*)",
+      "Bash(flutter devices)",
+      "Bash(dart analyze:*)",
+      "Bash(dart --version)",
+      "Bash(npm run check)",
+      "Bash(python scripts/check_docs_index.py)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)"
+    ]
+  }
+}

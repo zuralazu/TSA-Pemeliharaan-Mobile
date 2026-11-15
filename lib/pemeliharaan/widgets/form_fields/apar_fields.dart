@@ -11,7 +11,7 @@ class AparFields extends StatelessWidget {
   final void Function(String) onSafetyPinChanged;
 
   const AparFields({
-    Key? key,
+    super.key,
     required this.selangTerpilih,
     required this.pressureGaugeTerpilih,
     required this.safetyPinTerpilih,
@@ -20,7 +20,7 @@ class AparFields extends StatelessWidget {
     required this.onSelangChanged,
     required this.onPressureGaugeChanged,
     required this.onSafetyPinChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -71,13 +71,13 @@ class _CompactOptionGroup extends StatelessWidget {
   final void Function(String) onChanged;
 
   const _CompactOptionGroup({
-    Key? key,
+    super.key,
     required this.title,
     required this.options,
     required this.selectedValue,
     required this.accentColor,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -120,12 +120,12 @@ class _ChoiceChip extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ChoiceChip({
-    Key? key,
+    super.key,
     required this.label,
     required this.isSelected,
     required this.accentColor,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

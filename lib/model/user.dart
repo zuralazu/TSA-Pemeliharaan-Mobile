@@ -1,5 +1,4 @@
 // lib/model/user.dart
-import 'dart:convert'; // Tambahkan ini
 
 class User {
   final int id;

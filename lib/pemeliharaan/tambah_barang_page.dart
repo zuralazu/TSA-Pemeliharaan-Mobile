@@ -7,7 +7,7 @@ import 'package:tunassiakanugrah/config/env.dart';
 class TambahBarangPage extends StatefulWidget {
   final String? nomorIdentifikasi; // dari hasil scan QR (bisa null/empty)
 
-  const TambahBarangPage({Key? key, this.nomorIdentifikasi}) : super(key: key);
+  const TambahBarangPage({super.key, this.nomorIdentifikasi});
 
   @override
   State<TambahBarangPage> createState() => _TambahBarangPageState();
@@ -173,7 +173,7 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
                 errorList.add(value.toString());
               }
             });
-            errMsg += '\n\n' + errorList.join('\n');
+            errMsg += '\n\n${errorList.join('\n')}';
           }
           _showError(errMsg);
         } catch (_) {
@@ -194,8 +194,9 @@ class _TambahBarangPageState extends State<TambahBarangPage> {
           }
         } catch (_) {
           String bodySnippet = response.body;
-          if (bodySnippet.length > 400)
-            bodySnippet = bodySnippet.substring(0, 400) + '...';
+          if (bodySnippet.length > 400) {
+            bodySnippet = '${bodySnippet.substring(0, 400)}...';
+          }
           errMsg = 'Gagal menambahkan barang. Server response:\n$bodySnippet';
         }
         _showError(errMsg);

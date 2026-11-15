@@ -4,7 +4,7 @@ import 'package:tunassiakanugrah/pemeliharaan/qr_code.dart';
 import 'package:tunassiakanugrah/utama/dasbor_halaman.dart';
 
 class ModulHalaman extends StatelessWidget {
-  const ModulHalaman({Key? key}) : super(key: key);
+  const ModulHalaman({super.key});
 
   // Index "Modul" pada bottom nav dashboard adalah 3.
   static const int _kIndeksModul = 3;
@@ -132,13 +132,13 @@ class _ModulCard extends StatelessWidget {
   final IconData icon;
 
   const _ModulCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.modulType,
     required this.accent,
     required this.icon,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

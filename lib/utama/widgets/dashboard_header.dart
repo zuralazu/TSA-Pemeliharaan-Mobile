@@ -4,7 +4,7 @@ import 'package:tunassiakanugrah/model/user.dart';
 class DashboardHeader extends StatelessWidget {
   final User? user;
 
-  const DashboardHeader({Key? key, required this.user}) : super(key: key);
+  const DashboardHeader({super.key, required this.user});
 
   String _getRoleName(String role) {
     // Bisa diperluas jika ada banyak role

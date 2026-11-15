@@ -19,14 +19,14 @@ class FormulirLaporanHalaman extends StatefulWidget {
   final String qrCodeData;
   final String namaAlat;
 
-  FormulirLaporanHalaman({
-    Key? key,
+  const FormulirLaporanHalaman({
+    super.key,
     required this.idAlat,
     required this.tipeBarang,
     required this.lokasiAlat,
     required this.qrCodeData,
     required this.namaAlat,
-  }) : super(key: key);
+  });
 
   @override
   _FormulirLaporanHalamanState createState() => _FormulirLaporanHalamanState();
@@ -125,12 +125,14 @@ class _FormulirLaporanHalamanState extends State<FormulirLaporanHalaman>
     final upperTipe = widget.tipeBarang.toUpperCase();
     if (upperId.contains('APACO') ||
         upperId.contains('APAR') ||
-        upperTipe.contains('APAR'))
+        upperTipe.contains('APAR')) {
       return 'APAR';
+    }
     if (upperId.contains('HYD') ||
         upperId.contains('HYDRANT') ||
-        upperTipe.contains('HYDRANT'))
+        upperTipe.contains('HYDRANT')) {
       return 'HYDRANT';
+    }
     return 'UNKNOWN';
   }
 

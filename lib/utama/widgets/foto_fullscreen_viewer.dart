@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class FotoFullscreenViewer extends StatelessWidget {
   final String url;
 
-  const FotoFullscreenViewer({Key? key, required this.url}) : super(key: key);
+  const FotoFullscreenViewer({super.key, required this.url});
 
   /// Helper untuk membuka viewer dari halaman mana saja.
   static void show(BuildContext context, String url) {

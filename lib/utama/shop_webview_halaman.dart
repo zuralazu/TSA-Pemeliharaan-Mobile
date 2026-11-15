@@ -7,10 +7,10 @@ class ShopWebViewHalaman extends StatefulWidget {
   final String title;
 
   const ShopWebViewHalaman({
-    Key? key,
+    super.key,
     this.url = 'https://tunassiakanugrah.com',
     this.title = 'Shop',
-  }) : super(key: key);
+  });
 
   @override
   State<ShopWebViewHalaman> createState() => _ShopWebViewHalamanState();
