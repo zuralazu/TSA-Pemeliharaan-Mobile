@@ -62,8 +62,8 @@
 - Register uses `buildCompanyRegistrationRequest` from Task 1.
 - Login links to named route `/register`; Register links to named route `/login`.
 
-- [x] **Step 1: Add widget tests for company identity/account fields, required logo feedback, invalid email/password confirmation, and both reciprocal navigation links. Confirm the relevant tests fail before implementation.**
-- [x] **Step 2: Build a scrollable Register form matching the app's blue visual style, with company name/email/phone/address, contact name, username/password/confirmation, image selection and preview, validation, loading state, and existing server success/error behavior.**
+- [x] **Step 1: Add widget tests for the two registration steps, required logo feedback, invalid email/password confirmation, retained data on back navigation, and both reciprocal navigation links. Confirm the relevant tests fail before implementation.**
+- [x] **Step 2: Build a two-step Register flow matching the app's blue visual style, with animated progress and transitions; put company identity/logo in step 1 and supervisor credentials in step 2; preserve validation, loading, and server response behavior.**
 - [x] **Step 3: Add a Register link to Login and route both cross-links through the existing named routes.**
 - [x] **Step 4: Run `flutter test` and confirm the complete widget and request suites pass.**
 - [x] **Step 5: Update app-flow documentation to describe company registration and the links between Login and Register.**

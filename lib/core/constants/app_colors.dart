@@ -42,7 +42,11 @@ class AppColors {
   static const Color border        = Color(0xFFEDF0F5);
   static const Color borderInput   = Color(0xFFE2E8F0);
 
-  // ── Blue Shades (untuk gradient dashboard) 
+  // ── Auth (onboarding, login, register)
+  static const Color authBlue      = Color(0xFF1976D2);
+  static const Color authBlueLight = Color(0xFF42A5F5);
+
+  // ── Blue Shades (untuk gradient dashboard)
   static final Color blueStart     = Colors.blue.shade700;
   static final Color blueEnd       = Colors.blue.shade900;
 }

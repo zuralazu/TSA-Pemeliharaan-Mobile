@@ -7,6 +7,7 @@ Perusahaan baru dapat membuat akun supervisor umum dari alur onboarding. Form me
 ## Ruang lingkup
 
 - Ganti form register saat ini dengan form pendaftaran perusahaan.
+- Bagi form menjadi dua langkah dengan indikator progres dan transisi animasi: identitas perusahaan/logo, lalu akun supervisor. Tombol kembali mempertahankan data yang sudah dimasukkan.
 - Data form: nama perusahaan, email perusahaan, telepon, alamat, nama penanggung jawab, username supervisor, password, konfirmasi password, dan logo.
 - Validasi input wajib, format email, kecocokan password, dan gambar logo yang dipilih.
 - Gunakan endpoint yang dipilih pengguna: `POST ${Env.baseUrl}/api/register`, dengan `multipart/form-data`.

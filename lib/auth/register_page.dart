@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:tunassiakanugrah/auth/register_request.dart';
 import 'package:tunassiakanugrah/config/env.dart';
+import 'package:tunassiakanugrah/core/constants/app_colors.dart';
+import 'package:tunassiakanugrah/widgets/common/gradient_button.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -15,8 +18,8 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  static const _blue = Color(0xFF1976D2);
-  static const _pageColor = Color(0xFFF3F7FC);
+  static const _blue = AppColors.authBlue;
+  static const _gradient = [AppColors.authBlue, AppColors.authBlueLight];
 
   final _formKey = GlobalKey<FormState>();
   final _companyName = TextEditingController();
@@ -29,6 +32,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passwordConfirmation = TextEditingController();
 
   XFile? _logo;
+  int _step = 0;
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmation = true;
@@ -81,6 +85,15 @@ class _RegisterPageState extends State<RegisterPage> {
       _logo = image;
       _logoError = null;
     });
+  }
+
+  void _nextStep() {
+    final isFormValid = _formKey.currentState?.validate() ?? false;
+    setState(() {
+      _logoError = _logo == null ? 'Logo perusahaan wajib dipilih' : null;
+    });
+    if (!isFormValid || _logo == null) return;
+    setState(() => _step = 1);
   }
 
   Future<void> _register() async {
@@ -169,23 +182,31 @@ class _RegisterPageState extends State<RegisterPage> {
     return 'Data pendaftaran belum valid. Periksa kembali isian Anda.';
   }
 
+  // ── Form fields ───────────────────────────────────────────────────────────
+
+  OutlineInputBorder _border(Color color, [double width = 1]) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color, width: width),
+      );
+
   InputDecoration _decoration(String label, IconData icon) => InputDecoration(
     labelText: label,
-    prefixIcon: Icon(icon, color: _blue),
+    labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+    floatingLabelStyle: const TextStyle(
+      color: _blue,
+      fontWeight: FontWeight.w600,
+    ),
+    errorStyle: const TextStyle(color: AppColors.bad, fontSize: 12),
+    prefixIcon: Icon(icon, color: _blue, size: 22),
     filled: true,
-    fillColor: const Color(0xFFF9FBFE),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Color(0xFFDCE6F1)),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Color(0xFFDCE6F1)),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: _blue, width: 1.5),
-    ),
+    fillColor: AppColors.bgInput,
+    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+    border: _border(AppColors.borderInput),
+    enabledBorder: _border(AppColors.borderInput),
+    focusedBorder: _border(_blue, 2),
+    errorBorder: _border(AppColors.bad),
+    focusedErrorBorder: _border(AppColors.bad, 2),
   );
 
   Widget _field({
@@ -206,320 +227,619 @@ class _RegisterPageState extends State<RegisterPage> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       obscureText: obscureText,
+      style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
       decoration: _decoration(label, icon).copyWith(suffixIcon: suffixIcon),
     );
   }
 
-  Widget _sectionTitle(String title) => Padding(
-    padding: const EdgeInsets.only(bottom: 14, top: 8),
-    child: Text(
-      title,
-      style: const TextStyle(
-        color: Color(0xFF18324F),
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
+  Widget _visibilityToggle(bool obscured, VoidCallback onPressed) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(
+        obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+        color: AppColors.textSecondary,
       ),
-    ),
-  );
+    );
+  }
+
+  // ── Header on the gradient ────────────────────────────────────────────────
+
+  Widget _buildHeader(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 48,
+          child: Navigator.canPop(context)
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    ),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                )
+              : null,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.local_fire_department_rounded,
+                color: AppColors.aparAccent,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Daftarkan Perusahaan',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Buat akun supervisor untuk mulai mengelola pemeliharaan.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        _buildStepper(),
+      ],
+    );
+  }
+
+  Widget _buildStepper() {
+    Widget step(int index, String label) {
+      final reached = _step >= index;
+      final done = _step > index;
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 240),
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: reached
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: reached ? 1 : 0.5),
+                width: 1.5,
+              ),
+            ),
+            child: done
+                ? const Icon(Icons.check_rounded, size: 16, color: _blue)
+                : Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      color: reached ? _blue : Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: reached ? 1 : 0.7),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        step(0, 'Perusahaan'),
+        Expanded(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 240),
+            height: 2,
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: _step >= 1 ? 1 : 0.35),
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ),
+        step(1, 'Supervisor'),
+      ],
+    );
+  }
+
+  // ── Card content ──────────────────────────────────────────────────────────
+
+  Widget _buildStepTitle() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _step == 0 ? 'Identitas Perusahaan' : 'Akun Supervisor Umum',
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _step == 0 ? 'Langkah 1 dari 2' : 'Langkah 2 dari 2',
+                style: const TextStyle(
+                  color: _blue,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          _step == 0
+              ? 'Lengkapi profil perusahaan dan unggah logonya.'
+              : 'Buat kredensial untuk supervisor perusahaan.',
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogoPicker() {
+    final hasError = _logoError != null;
+    final tint = hasError ? AppColors.bad : _blue;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: const Key('logo-picker-button'),
+            onTap: _pickLogo,
+            borderRadius: BorderRadius.circular(16),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: tint.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: tint.withValues(alpha: hasError ? 0.6 : 0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.borderInput),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      child: _logo == null
+                          ? Icon(
+                              Icons.add_photo_alternate_outlined,
+                              key: const ValueKey('empty-logo'),
+                              color: tint,
+                              size: 28,
+                            )
+                          : Image.file(
+                              File(_logo!.path),
+                              key: ValueKey(_logo!.path),
+                              fit: BoxFit.cover,
+                              width: 64,
+                              height: 64,
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Logo Perusahaan',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _logo == null
+                              ? 'Logo perusahaan wajib diunggah'
+                              : 'Ketuk logo untuk menggantinya',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: tint,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _logo == null ? 'Pilih logo' : 'Ganti',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              _logoError!,
+              style: const TextStyle(color: AppColors.bad, fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCompanyStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildLogoPicker(),
+        const SizedBox(height: 16),
+        _field(
+          key: const Key('company-name'),
+          controller: _companyName,
+          label: 'Nama Perusahaan',
+          icon: Icons.business_outlined,
+          validator: _required,
+        ),
+        const SizedBox(height: 12),
+        _field(
+          key: const Key('company-email'),
+          controller: _companyEmail,
+          label: 'Email Perusahaan',
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+          validator: _validEmail,
+        ),
+        const SizedBox(height: 12),
+        _field(
+          key: const Key('company-phone'),
+          controller: _companyPhone,
+          label: 'Nomor Telepon',
+          icon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
+          validator: _required,
+        ),
+        const SizedBox(height: 12),
+        _field(
+          key: const Key('company-address'),
+          controller: _companyAddress,
+          label: 'Alamat Perusahaan',
+          icon: Icons.location_on_outlined,
+          validator: _required,
+          maxLines: 2,
+        ),
+        const SizedBox(height: 12),
+        _field(
+          key: const Key('contact-name'),
+          controller: _contactName,
+          label: 'Nama Penanggung Jawab',
+          icon: Icons.person_outline,
+          validator: _required,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSupervisorStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _blue.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _blue.withValues(alpha: 0.2),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.verified_user_outlined,
+                  color: _blue,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Akun ini akan mendapat akses Supervisor Umum.',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _field(
+          key: const Key('supervisor-username'),
+          controller: _username,
+          label: 'Username Supervisor',
+          icon: Icons.account_circle_outlined,
+          validator: _required,
+        ),
+        const SizedBox(height: 12),
+        _field(
+          key: const Key('register-password'),
+          controller: _password,
+          label: 'Password',
+          icon: Icons.lock_outline,
+          validator: _validPassword,
+          obscureText: _obscurePassword,
+          suffixIcon: _visibilityToggle(
+            _obscurePassword,
+            () => setState(() => _obscurePassword = !_obscurePassword),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _field(
+          key: const Key('register-password-confirmation'),
+          controller: _passwordConfirmation,
+          label: 'Konfirmasi Password',
+          icon: Icons.lock_reset_outlined,
+          validator: _matchingPassword,
+          obscureText: _obscureConfirmation,
+          suffixIcon: _visibilityToggle(
+            _obscureConfirmation,
+            () => setState(() => _obscureConfirmation = !_obscureConfirmation),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepActions() {
+    if (_step == 0) {
+      return GradientButton(
+        key: const Key('register-next'),
+        label: 'Lanjutkan',
+        icon: Icons.arrow_forward_rounded,
+        colors: _gradient,
+        onPressed: _nextStep,
+        height: 52,
+      );
+    }
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 52,
+          height: 52,
+          child: OutlinedButton(
+            key: const Key('register-back'),
+            onPressed: () => setState(() => _step = 0),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _blue,
+              padding: EdgeInsets.zero,
+              side: BorderSide(color: _blue.withValues(alpha: 0.4), width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: const Icon(Icons.arrow_back_rounded),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: GradientButton(
+            key: const Key('register-submit'),
+            label: 'Buat Akun',
+            icon: Icons.check_circle_rounded,
+            colors: _gradient,
+            onPressed: _register,
+            isLoading: _isLoading,
+            height: 52,
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _pageColor,
-      appBar: AppBar(
-        backgroundColor: _pageColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF18324F)),
-      ),
-      body: SafeArea(
-        top: false,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0D5EAA), Color(0xFF42A5F5)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: const Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.local_fire_department_rounded,
-                          color: Color(0xFFC62828),
-                          size: 34,
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Daftarkan Perusahaan',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 21,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            SizedBox(height: 5),
-                            Text(
-                              'Buat akun supervisor untuk mulai mengelola pemeliharaan.',
-                              style: TextStyle(
-                                color: Colors.white,
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x100D3B66),
-                        blurRadius: 20,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _sectionTitle('Identitas Perusahaan'),
-                      Center(
-                        child: Column(
-                          children: [
-                            InkWell(
-                              key: const Key('logo-picker-button'),
-                              onTap: _pickLogo,
-                              borderRadius: BorderRadius.circular(18),
-                              child: Container(
-                                width: 116,
-                                height: 116,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEAF3FC),
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: const Color(0xFFC9DDF2),
-                                  ),
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: _logo == null
-                                    ? const Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.add_photo_alternate_outlined,
-                                            color: _blue,
-                                            size: 34,
-                                          ),
-                                          SizedBox(height: 5),
-                                          Text(
-                                            'Tambah logo',
-                                            style: TextStyle(
-                                              color: _blue,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Image.file(
-                                        File(_logo!.path),
-                                        fit: BoxFit.cover,
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 7),
-                            Text(
-                              _logo == null
-                                  ? 'Logo perusahaan *'
-                                  : 'Ketuk untuk mengganti logo',
-                              style: TextStyle(
-                                color: _logoError == null
-                                    ? const Color(0xFF66788A)
-                                    : Colors.red,
-                                fontSize: 12,
-                              ),
-                            ),
-                            if (_logoError != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  _logoError!,
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      _field(
-                        key: const Key('company-name'),
-                        controller: _companyName,
-                        label: 'Nama Perusahaan',
-                        icon: Icons.business_outlined,
-                        validator: _required,
-                      ),
-                      const SizedBox(height: 14),
-                      _field(
-                        key: const Key('company-email'),
-                        controller: _companyEmail,
-                        label: 'Email Perusahaan',
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: _validEmail,
-                      ),
-                      const SizedBox(height: 14),
-                      _field(
-                        key: const Key('company-phone'),
-                        controller: _companyPhone,
-                        label: 'Nomor Telepon',
-                        icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                        validator: _required,
-                      ),
-                      const SizedBox(height: 14),
-                      _field(
-                        key: const Key('company-address'),
-                        controller: _companyAddress,
-                        label: 'Alamat Perusahaan',
-                        icon: Icons.location_on_outlined,
-                        validator: _required,
-                        maxLines: 2,
-                      ),
-                      const SizedBox(height: 14),
-                      _field(
-                        key: const Key('contact-name'),
-                        controller: _contactName,
-                        label: 'Nama Penanggung Jawab',
-                        icon: Icons.person_outline,
-                        validator: _required,
-                      ),
-                      _sectionTitle('Akun Supervisor Umum'),
-                      _field(
-                        key: const Key('supervisor-username'),
-                        controller: _username,
-                        label: 'Username Supervisor',
-                        icon: Icons.account_circle_outlined,
-                        validator: _required,
-                      ),
-                      const SizedBox(height: 14),
-                      _field(
-                        key: const Key('register-password'),
-                        controller: _password,
-                        label: 'Password',
-                        icon: Icons.lock_outline,
-                        validator: _validPassword,
-                        obscureText: _obscurePassword,
-                        suffixIcon: IconButton(
-                          onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      _field(
-                        key: const Key('register-password-confirmation'),
-                        controller: _passwordConfirmation,
-                        label: 'Konfirmasi Password',
-                        icon: Icons.lock_reset_outlined,
-                        validator: _matchingPassword,
-                        obscureText: _obscureConfirmation,
-                        suffixIcon: IconButton(
-                          onPressed: () => setState(
-                            () => _obscureConfirmation = !_obscureConfirmation,
-                          ),
-                          icon: Icon(
-                            _obscureConfirmation
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      SizedBox(
-                        height: 54,
-                        child: ElevatedButton(
-                          key: const Key('register-submit'),
-                          onPressed: _isLoading ? null : _register,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _blue,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Daftar Perusahaan',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Center(
-                  child: TextButton(
-                    key: const Key('register-to-login'),
-                    onPressed: () =>
-                        Navigator.pushReplacementNamed(context, '/login'),
-                    child: const Text.rich(
-                      TextSpan(
-                        text: 'Sudah punya akun? ',
-                        children: [
-                          TextSpan(
-                            text: 'Login',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: _blue,
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: _gradient,
+            ),
+          ),
+          child: SafeArea(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHeader(context),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgCard,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
                           ),
                         ],
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildStepTitle(),
+                          const SizedBox(height: 20),
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 240),
+                            curve: Curves.easeInOut,
+                            alignment: Alignment.topCenter,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 240),
+                              transitionBuilder: (child, animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0.04, 0),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: KeyedSubtree(
+                                key: ValueKey(_step),
+                                child: _step == 0
+                                    ? _buildCompanyStep()
+                                    : _buildSupervisorStep(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _buildStepActions(),
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: TextButton(
+                        key: const Key('register-to-login'),
+                        onPressed: () =>
+                            Navigator.pushReplacementNamed(context, '/login'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Sudah punya akun? ',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                            children: const [
+                              TextSpan(
+                                text: 'Login',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
